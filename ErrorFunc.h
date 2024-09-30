@@ -12,6 +12,13 @@ enum ErrorCode
     POP_IN_EMPTY_STACK,
     TO_BIG_CAPACITY,
     PUSH_IN_FULL_STACK,
+    LEFT_STACK_CANARY_CHANGED,
+    RIGHT_STACK_CANARY_CHANGED,
+    LEFT_DATA_CANARY_CHANGED,
+    RIGHT_DATA_CANARY_CHANGED
+
+    ON_DEBUG
+    (,
     STACK_NULL,
     DATA_NULL,
     SIZE_BIGGER_CAPACITY,
@@ -21,16 +28,13 @@ enum ErrorCode
     CAPACITY_SMALLER_MIN,
     CAPACITY_BIGGER_MAX,
     DATA_ELEM_BIGGER_SIZE_IS_NOT_POISON,
-    LEFT_STACK_CANARY_CHANGED,
-    RIGHT_STACK_CANARY_CHANGED,
-    LEFT_DATA_CANARY_CHANGED,
-    RIGHT_DATA_CANARY_CHANGED,
     STACK_HASH_CHANGED,
     DATA_HASH_CHANGED,
     STACK_CTOR_NAME_NULL,
     STACK_CTOR_FILE_NULL,
     STACK_CTOR_FUNC_NULL,
-    STACK_CTOR_LINE_NEGATIVE_OR_NULL
+    STACK_CTOR_LINE_NEGATIVE
+    )
 };
 
 
@@ -68,7 +72,11 @@ enum ErrorCode
     } while (0);                                                                                     \
 
 #else
-    #define ASSERT(Err) Err
+    #define ASSERT(Err) do                                                                  \
+    {                                                                                        \
+        ErrorCode ErrCopy = Err;                                                              \
+        PrintError(ErrCopy, __FILE__, __LINE__, __func__);                                     \
+    } while (0);                                                                                \
 
 #endif
 
