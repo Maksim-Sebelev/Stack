@@ -23,18 +23,3 @@ int Hash(void* Arr, size_t ArrSize)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-
-ON_DEBUG
-(
-int CalcRealStackHash(Stack_t* Stack)
-{
-    int StackHashCopy = Stack->StackHash;
-    Stack->StackHash = 0;
-    int RealStackHash = Hash((void*)Stack, sizeof(*Stack));
-    Stack->StackHash = StackHashCopy;
-    return RealStackHash;
-}
-);
-
-//----------------------------------------------------------------------------------------------------------------------
-

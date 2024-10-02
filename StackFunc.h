@@ -9,7 +9,7 @@
     #define CTOR(StackPtr, StackSize, Name) do                                           \
     {                                                                                     \
         ASSERT(Ctor(StackPtr, StackSize, __FILE__, __LINE__, __func__, Name));             \
-    } while (0);                                                                            \
+    } while (0)                                                                             \
 
 #else
     #define CTOR(StackPtr, StackSize) do                                           \
@@ -22,17 +22,26 @@
 const unsigned int CapPushReallocCoef = 2;
 const unsigned int CapPopReallocCoef  = 4;
 
-const int LeftStackCanary  = 0xDEADDEAD;
-const int RightStackCanary = 0xDEADDED;
-const int LeftDataCanary   = 0xEDADEDA;
-const int RightDataCanary  = 0xDEDDEAD;
 
+typedef int Canary_t;
 
-ErrorCode Ctor(Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char* File, int Line, const char* Func, const char* Name));
-ErrorCode Dtor(Stack_t* Stack);
-ErrorCode Push(Stack_t*, StackElem_t PushElem);
-ErrorCode Pop(Stack_t* Stack, StackElem_t* PopElem);
-ErrorCode PrintStack(Stack_t* Stack);
+const Canary_t LeftStackCanary  = 0xDEADDEAD;
+const Canary_t RightStackCanary = 0xDEADDED;
+
+const Canary_t LeftDataCanary   = 0xEDADEDA;
+const Canary_t RightDataCanary  = 0xDEDDEAD;
+
+// Ctor()
+ErrorType Ctor(Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char* File, int Line, const char* Func, const char* Name));
+ErrorType Dtor(Stack_t* Stack);
+ErrorType Push(Stack_t*, StackElem_t PushElem);
+ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem);
+ErrorType PrintStack(Stack_t* Stack);
+ON_DEBUG
+(
+int CalcRealStackHash(Stack_t* Stack);
+);
+
 
 
 #endif

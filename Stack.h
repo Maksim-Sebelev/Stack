@@ -2,6 +2,7 @@
 #define STACK_H
 
 #define DEBUG
+#define CANARY
 
 #include <stdio.h>
 #include <limits.h>
@@ -17,8 +18,15 @@ typedef int StackElem_t;
     #define OFF_DEBUG(...) __VA_ARGS__
 #endif
 
+
+#ifdef CANARY
+    #define ON_CANARY(...) __VA_ARGS__
+#else
+    #define ON_CANARY(...)
+#endif
+
 const size_t MinCapacity = 2;
-const size_t MaxCapacity = 2097152; // 2^21 = 2097152
+const size_t MaxCapacity = 1 << 21; // 2^21 = 2097152
 
 const int Poison = 0xDEEEEEAD;
 

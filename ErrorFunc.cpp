@@ -8,229 +8,320 @@
 #include "StackFunc.h"
 #include "HashFunc.h"
 
-
 //----------------------------------------------------------------------------------------------------------------------
 
-ErrorCode Verif(Stack_t* Stack)
+void Verif(Stack_t* Stack, ErrorType* Error)
 {
+    if (Stack == NULL)
+    {
+        Error->FatalError.StackNull = 1;
+        Error->IsFatalError = 1;
+        return;
+    }  
+    else
+    {
+        Error->FatalError.StackNull = 0;   
+    }
+
+    if (Stack->Data == NULL)
+    {
+        Error->FatalError.DataNull = 1;
+        Error->IsFatalError = 1;
+        return;
+    }
+    else
+    {
+        Error->FatalError.DataNull = 0;
+    }
+
     if (Stack->LeftStackCanary != LeftStackCanary)
     {
-        return LEFT_STACK_CANARY_CHANGED;
+        Error->FatalError.LeftStackCanaryChanged = 1;
+        Error->IsWarning = 1;
+    }
+    else
+    {
+        Error->FatalError.LeftDataCanaryChanged = 0;
     }
 
     if (Stack->RightStackCanary != RightStackCanary)
     {
-        return RIGHT_STACK_CANARY_CHANGED;
+        Error->FatalError.RightStackCanaryChanged = 1;
+        Error->IsWarning = 1;
+    }
+    else
+    {
+        Error->FatalError.RightStackCanaryChanged = 0;
     }
     
     if (Stack->Data[0] != LeftDataCanary)
     {
-        return LEFT_DATA_CANARY_CHANGED;
+        Error->FatalError.LeftDataCanaryChanged = 1;
+        Error->IsWarning = 1;
+    }
+    else
+    {
+        Error->FatalError.LeftDataCanaryChanged = 0;
     }
 
     if (Stack->Data[Stack->Capacity - 1] != RightDataCanary)
     {
-        return RIGHT_DATA_CANARY_CHANGED;
+        Error->FatalError.RightDataCanaryChanged = 1;
+        Error->IsWarning = 1;
+    }
+    else
+    {
+        Error->FatalError.RightDataCanaryChanged = 0;
     }
 
-
+    // -> 
     ON_DEBUG
     (
-    if (&Stack == NULL)
+    if (Stack->Size - 1 > Stack->Capacity - 2)
     {
-        return STACK_NULL;
-    }  
-
-    if (Stack->Data == NULL)
+        Error->FatalError.SizeBiggerCapacity = 1;
+        Error->IsFatalError = 1;
+    }
+    else
     {
-        return DATA_NULL;
+        Error->FatalError.SizeBiggerCapacity = 0;   
     }
 
-    if (Stack->Size > Stack->Capacity + ON_DEBUG(+ 1))
+    if (Stack->Capacity - 2 < MinCapacity)
     {
-        return SIZE_BIGGER_CAPACITY;
+        Error->FatalError.CapacitySmallerMin = 1;
+        Error->IsFatalError = 1;
+    }
+    else
+    {
+        Error->FatalError.CapacitySmallerMin = 0;
     }
 
-    if (Stack->Capacity < MinCapacity)
+    if (Stack->Capacity - 2 > MaxCapacity)
     {
-        return CAPACITY_SMALLER_MIN;
+        Error->FatalError.CapacityBiggerMax = 1;
+        Error->IsFatalError = 1;
     }
-
-    if (Stack->Capacity > MaxCapacity)
+    else
     {
-        return CAPACITY_BIGGER_MAX;
+        Error->FatalError.CapacityBiggerMax = 0;
     }
 
     if (Stack->Var.File == NULL)
     {
-        return STACK_CTOR_FILE_NULL;
+        Error->FatalError.CtorStackFileNull = 1;
+        Error->IsFatalError = 1;
+    }
+    else
+    {
+        Error->FatalError.CtorStackFileNull = 0;   
     }
 
     if (Stack->Var.Func == NULL)
     {
-        return STACK_CTOR_FUNC_NULL;
+        Error->FatalError.CtorStackFuncNull = 1;
+        Error->IsFatalError = 1;
+    }
+    else
+    {
+        Error->FatalError.CtorStackFuncNull = 0;
     }
 
     if (Stack->Var.Name == NULL)
     {
-        return STACK_CTOR_NAME_NULL;
+        Error->FatalError.CtorStackNameNull = 1;
+        Error->IsFatalError = 1;
+    }
+    else
+    {
+        Error->FatalError.CtorStackNameNull = 0;
     }
 
     if (Stack->Var.Line < 0)
     {
-        return STACK_CTOR_LINE_NEGATIVE;
+        Error->FatalError.CtorStackLineNegative = 1;
+        Error->IsFatalError = 1;
+    }
+    else
+    {
+        Error->FatalError.CtorStackLineNegative = 0;
     }
 
+
+    int WasNotPosion = 0;
     for (size_t Data_i = Stack->Size; Data_i < Stack->Capacity - 1; Data_i++)
     {
         if (Stack->Data[Data_i] != Poison)
         {
-            return DATA_ELEM_BIGGER_SIZE_IS_NOT_POISON;
+            Error->FatalError.DataElemBiggerSizeNotPoison = 1;
+            Error->IsFatalError = 1;
+            WasNotPosion = 1;
+            break;
         }
     }
 
+    if (WasNotPosion == 0)
+    {
+        Error->FatalError.DataElemBiggerSizeNotPoison = 0;
+    }
+    
+
     if (Hash(Stack->Data, sizeof(StackElem_t) * Stack->Capacity) != Stack->DataHash)
     {
-        return DATA_HASH_CHANGED;
+        Error->FatalError.DataHashChanged = 1;
+        Error->IsFatalError = 1;
+    }
+    else
+    {
+        Error->FatalError.DataHashChanged = 0;
     }
 
     if (CalcRealStackHash(Stack) != Stack->StackHash)
     {
-        return STACK_HASH_CHANGED;
+        Error->FatalError.StackHashChanged = 1;
+        Error->IsFatalError = 1;
+    }
+    else
+    {
+        Error->FatalError.StackHashChanged = 0;
     }
     );
-    return NO_ERR;
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void PrintError(const ErrorCode Error, const char* File, const int Line, const char* Function)
+void PrintError(ErrorType Error)
 {
-    switch (Error)
+    if (Error.IsWarning == 0 && Error.IsFatalError == 0)
     {
-        case NO_ERR:
-            return;
-            break;
+        return;
+    }
+    
+    if (Error.IsWarning == 1)
+    {
 
-        case POP_IN_EMPTY_STACK:
+        if (Error.Warning.PopInEmptyStack == 1)
+        {
             COLOR_PRINT(YELLOW, "\nWarning: make pop, but Stack is empty.\n");
             COLOR_PRINT(YELLOW, "Pop will not change PopElem.\n");
-            PrintPlace(File, Line, Function);
-            break;
+        }
 
-        case TO_BIG_CAPACITY:
+        if (Error.Warning.ToBigCapacity == 1)
+        {
             COLOR_PRINT(YELLOW, "\nWarning: to big Data size.\n");
             COLOR_PRINT(YELLOW, "Capacity have a max allowed value.\n");
-            PrintPlace(File, Line, Function);
-            break;
-        
-        case PUSH_IN_FULL_STACK:
-            COLOR_PRINT(RED, "\nError: made Push in full Stack.\n");
-            COLOR_PRINT(RED, "Capacity = MaxCapcity and Size = Capacity.\n");
-            PrintPlace(File, Line, Function);
-            break;
+        }
 
-        case LEFT_STACK_CANARY_CHANGED:
+        if (Error.Warning.PushInFullStack == 1)
+        {
+            COLOR_PRINT(YELLOW, "\nWarning: made Push in full Stack.\n");
+            COLOR_PRINT(YELLOW, "Stack won't change.\n");
+        }
+    }
+
+    if (Error.IsFatalError == 1)
+    {
+        if (Error.FatalError.LeftStackCanaryChanged == 1)
+        {
             COLOR_PRINT(RED, "\nError: Left Stack Canary was changed.\n");
             OFF_DEBUG(COLOR_PRINT(RED, "!Stack Data can be incorrect!\n"));
-            PrintPlace(File, Line, Function);
-            break;
-
-        case RIGHT_STACK_CANARY_CHANGED:
+        }
+        
+        if (Error.FatalError.RightStackCanaryChanged == 1)
+        {
             COLOR_PRINT(RED, "\nError: Right Stack Canary was changed.\n");
             OFF_DEBUG(COLOR_PRINT(RED, "!Stack Data can be incorrect!\n"));
-            PrintPlace(File, Line, Function);
-            break;
+        }
         
-        case LEFT_DATA_CANARY_CHANGED:
+        if (Error.FatalError.LeftDataCanaryChanged == 1)
+        {
             COLOR_PRINT(RED, "\nError: Left Data Canary was changed.\n");
             OFF_DEBUG(COLOR_PRINT(RED, "!Stack Data can be incorrect!\n"));
-            PrintPlace(File, Line, Function);
-            break;
-        
-        case RIGHT_DATA_CANARY_CHANGED:
+        }
+
+        if (Error.FatalError.RightDataCanaryChanged == 1)
+        {
             COLOR_PRINT(RED, "\nError: Right Data Canary was changed.\n");
             OFF_DEBUG(COLOR_PRINT(RED, "!Stack Data can be incorrect!\n"));
-            PrintPlace(File, Line, Function);
-            break;
+        }
+
 
         ON_DEBUG
         (
-        case STACK_NULL:
-            COLOR_PRINT(RED, "\nError: Stack ptr is NULL.\n");
-            PrintPlace(File, Line, Function);
-            break;
+        if (Error.FatalError.StackNull == 1)
+        {
+            COLOR_PRINT(RED, "\nError: Right Data Canary was changed.\n");
+            OFF_DEBUG(COLOR_PRINT(RED, "!Stack Data can be incorrect!\n"));
+        }
 
-        case DATA_NULL:
+        if (Error.FatalError.DataNull == 1)
+        {
             COLOR_PRINT(RED, "\nError: Data is NULL.\n");
-            PrintPlace(File, Line, Function);
-            break;
+        }
 
-        case SIZE_BIGGER_CAPACITY:
+        if (Error.FatalError.SizeBiggerCapacity == 1)
+        {
             COLOR_PRINT(RED, "\nError: Size > Capacity.\n");
-            PrintPlace(File, Line, Function);
-            break;
-
-        case CALLOC_CTOR_NULL:
+        }
+        
+        if (Error.FatalError.CallocCtorNull == 1)
+        {
             COLOR_PRINT(RED, "\nError: failed to allocate memory in Ctor.\n");
-            PrintPlace(File, Line, Function);
-            break;
+        }
         
-        case REALLOC_PUSH_NULL:
+        if (Error.FatalError.ReallocPushNull == 1)
+        {
             COLOR_PRINT(RED, "\nError: failed to reallocate memory in Push.\n");
-            PrintPlace(File, Line, Function);
-            break;
+        }
 
-        case REALLOC_POP_NULL:
+        if (Error.FatalError.ReallocPopNull == 1)
+        {
             COLOR_PRINT(RED, "\nError: failed to free memory in Pop.\n");
-            PrintPlace(File, Line, Function);
-            break;
-
-        case CAPACITY_BIGGER_MAX:
+        }
+        
+        if (Error.FatalError.CapacityBiggerMax == 1)
+        {
             COLOR_PRINT(RED, "\nError: Capacity > MaxCapacity.\n");
-            PrintPlace(File, Line, Function);
-            break;
+        }
 
-        case CAPACITY_SMALLER_MIN:
+        if (Error.FatalError.CapacitySmallerMin == 1)
+        {
             COLOR_PRINT(RED, "\nError: Capacity < MinCapacity.\n");
-            PrintPlace(File, Line, Function);
-            break;
+        }
 
-        case DATA_ELEM_BIGGER_SIZE_IS_NOT_POISON:
+        if (Error.FatalError.DataElemBiggerSizeNotPoison == 1)
+        {
             COLOR_PRINT(RED, "\nError: After Size in Data is not Poison elem.\n");
-            PrintPlace(File, Line, Function);
-            break;
+        }
 
-        case STACK_HASH_CHANGED:
-            COLOR_PRINT(RED, "\nError: Stack Hash is incorrect.\n");
-            PrintPlace(File, Line, Function);
-            break;
-        
-        case DATA_HASH_CHANGED:
-            COLOR_PRINT(RED, "\nError: Data Hash is incorrect.\n");
-            PrintPlace(File, Line, Function);
-            break;
-        
-        case STACK_CTOR_FILE_NULL:
+        if (Error.FatalError.CtorStackFileNull == 1)
+        {
             COLOR_PRINT(RED, "\nError: Stack ctor init file is NULL.\n");
-            PrintPlace(File, Line, Function);
-            break;
+        }
 
-        case STACK_CTOR_FUNC_NULL:
+        if (Error.FatalError.CtorStackFuncNull == 1)
+        {
             COLOR_PRINT(RED, "\nError: Stack ctor init func is NULL.\n");
-            PrintPlace(File, Line, Function);
-            break;
+        }
         
-        case STACK_CTOR_LINE_NEGATIVE:
+        if (Error.FatalError.CtorStackLineNegative == 1)
+        {
             COLOR_PRINT(RED, "\nError: Stack ctor init line is negative or 0.\n");
-            PrintPlace(File, Line, Function);
-            break;
+        }
+
+        if (Error.FatalError.DataHashChanged == 1)
+        {
+            COLOR_PRINT(RED, "\nError: Data Hash is incorrect.\n");
+        }
+
+        if (Error.FatalError.StackHashChanged == 1)
+        {
+            COLOR_PRINT(RED, "\nError: Stack Hash is incorrect.\n");
+        }
         );
-        
-        default:
-            ON_DEBUG(COLOR_PRINT(RED, "\nUndefined situation (maybe autor forgot about same ErrorCode).\n"));
-            break;
     }
+
     return;
 }
 
@@ -249,14 +340,14 @@ void Dump(Stack_t* Stack)
             return;
         }
     #else
-        COLOR_PRINT(YELLOW, "WARNING: Dump is dangerius mode.\n");
+        COLOR_PRINT(YELLOW, "WARNING: Dump is in dangerous mode.\n");
         COLOR_PRINT(YELLOW, "Undefined bahavior is possible.\n\n");
     #endif
     );
 
     COLOR_PRINT(VIOLET, "Stack data during Ctor:\n");
 
-    if (&Stack == NULL)
+    if (Stack == NULL)
     {
         COLOR_PRINT(RED, "Stack = NULL\n");
         return;
@@ -322,11 +413,11 @@ void Dump(Stack_t* Stack)
     COLOR_PRINT(BLUE, "Data  Hash = %d\n\n", Stack->DataHash);
     );
 
-    COLOR_PRINT(CYAN, "Size = %u\n", Stack->Size);
-    COLOR_PRINT(CYAN, "Capacity = %u\n\n", Stack->Capacity);
+    COLOR_PRINT(CYAN, "Size = %u\n", Stack->Size - 1);
+    COLOR_PRINT(CYAN, "Capacity = %u\n\n", Stack->Capacity - 2);
 
 
-    COLOR_PRINT(GREEN, "Poison = %x = %d\n\n", Poison, Poison);
+    COLOR_PRINT(GREEN, "Poison = 0x%x = %d\n\n", Poison, Poison);
 
     COLOR_PRINT(BLUE, "Data = \n{\n");
     for (size_t Data_i = 1; Data_i < Stack->Size; Data_i++)
@@ -359,8 +450,23 @@ void Dump(Stack_t* Stack)
 
 void PrintPlace(const char* File, const int Line, const char* Function)
 {
-    COLOR_PRINT(WHITE, "File [%s]\nLine [%d]\nFunc [%s]\n\n", File, Line, Function);
+    COLOR_PRINT(WHITE, "File [%s]\nLine [%d]\nFunc [%s]\n", File, Line, Function);
     return;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+
+void AssertPrint(ErrorType Err, const char* File, int Line, const char* Func)
+{
+    if (Err.IsFatalError == 1 || Err.IsWarning == 1) 
+    {
+        COLOR_PRINT(WHITE, "\n"
+        "//----------------------------------------------------------------------------------------------------\n\n");
+        COLOR_PRINT(RED, "Assert made in:\n");
+        PrintPlace(File, Line, Func);
+        PrintError(Err);
+        PrintPlace(Err.File, Err.Line, Err.Func);
+        COLOR_PRINT(WHITE, "\n//------------------------------------------------------------------------------------------------------\n");
+        printf("\n\n");
+    }
+}

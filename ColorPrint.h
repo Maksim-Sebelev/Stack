@@ -23,7 +23,7 @@
 {                                    \
     printf(COLOR);                    \
     printf(__VA_ARGS__);               \
-    printf(RESET);                        \
+    printf(RESET);                      \
 } while (0);                             \
 
 
