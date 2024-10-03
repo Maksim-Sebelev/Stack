@@ -23,13 +23,18 @@ const unsigned int CapPushReallocCoef = 2;
 const unsigned int CapPopReallocCoef  = 4;
 
 
-typedef int Canary_t;
 
-const Canary_t LeftStackCanary  = 0xDEADDEAD;
-const Canary_t RightStackCanary = 0xDEADDED;
+ON_SCANARY
+(
+const StackCanary_t LeftStackCanary  = 0xDEADDEAD;
+const StackCanary_t RightStackCanary = 0xDEADDED;
+)
 
-const Canary_t LeftDataCanary   = 0xEDADEDA;
-const Canary_t RightDataCanary  = 0xDEDDEAD;
+ON_DCANARY
+(
+const DataCanary_t LeftDataCanary   = 0xEDADEDA;
+const DataCanary_t RightDataCanary  = 0xDEDDEAD;
+)
 
 // Ctor()
 ErrorType Ctor(Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char* File, int Line, const char* Func, const char* Name));
@@ -37,11 +42,26 @@ ErrorType Dtor(Stack_t* Stack);
 ErrorType Push(Stack_t*, StackElem_t PushElem);
 ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem);
 ErrorType PrintStack(Stack_t* Stack);
-ON_DEBUG
+
+ON_SHASH
 (
 int CalcRealStackHash(Stack_t* Stack);
 );
 
+ON_DCANARY
+(
+DataCanary_t GetLeftDataCanary(Stack_t* Stack);
+DataCanary_t GetRightDataCanary(Stack_t* Stack);
+size_t GetLeftDataCanaryIndex(Stack_t* Stack);
+size_t GetRightDataCanaryIndex(Stack_t* Stack);
+);
+size_t GetStackCapacity(Stack_t* Stack);
+size_t GetStackSize(Stack_t* Stack);
+size_t GetNewPushCapacity(Stack_t* Stack);
+size_t GetNewPopCapacity(Stack_t* Stack);
+size_t GetDataBeginIndex(Stack_t* Stack);
+size_t GetMaxCapacity();
+size_t GetMinCapacity();
 
 
 #endif

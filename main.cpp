@@ -10,7 +10,6 @@ const size_t DefaultStackSize = 2;
 int main()
 {
     Stack_t Stack = {};
-    StackElem_t PopElem = 0;
     ErrorType Err = {};
 
     // ASSERT(Ctor(&Stack, DefaultStackSize, __FILE__, __LINE__, __func__, "Stack"));
@@ -19,23 +18,42 @@ int main()
     ASSERT(Err);
 
 
-    for (size_t i = 0; i < 1000; i++)
+    for (size_t i = 0; i < 1<<21; i++)
     {
-        // if (i % 1000 == 0)
-        // {
-        //     printf("%u\n", i);
-        // }
+        if (i % 1000 == 0)
+        {
+            printf("%u\n", i);
+        }
         ASSERT(Push(&Stack, i + 1));
     }
-    for (size_t i = 0; i < 11; i++)
-    {
-        // if (i % 1000 == 0)
-        // {
-        //     printf("%u\n", i); 
-        // }
-        ASSERT(Pop(&Stack, &PopElem));
-    }
 
+    // StackElem_t PopElem = 0;
+    // for (size_t i = 0; i < 1; i++)
+    // {
+    //     // if (i % 1000 == 0)
+    //     // {
+    //     //     printf("%u\n", i); 
+    //     // }
+    //     ASSERT(Pop(&Stack, &PopElem));
+    // }
+
+    // for (size_t i = 0; i < 0; i++)
+    // {
+    //     // if (i % 1000 == 0)
+    //     // {
+    //     //     printf("%u\n", i);
+    //     // }
+    //     ASSERT(Push(&Stack, i + 1));
+    // }
+
+    // for (size_t i = 0; i < 3; i++)
+    // {
+    //     // if (i % 1000 == 0)
+    //     // {
+    //     //     printf("%u\n", i); 
+    //     // }
+    //     ASSERT(Pop(&Stack, &PopElem));
+    // }
     // DUMP(&Stack);
     // ASSERT(PrintStack(&Stack));
 

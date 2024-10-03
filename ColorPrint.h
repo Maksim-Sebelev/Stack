@@ -26,5 +26,4 @@
     printf(RESET);                      \
 } while (0);                             \
 
-
 #endif
