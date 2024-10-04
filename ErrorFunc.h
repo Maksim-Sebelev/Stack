@@ -68,28 +68,28 @@ struct ErrorType
 };
 
 
-#define ERR_RETURN_WARN_PRINT(StackPtr, Err)               \
-{                                                           \
-    ErrorType ErrCopy = Err;                                 \
-    Verif(Stack, &ErrCopy);                                   \
+#define ERR_RETURN_WARN_PRINT(StackPtr, Err) do                      \
+{                                                                     \
+    ErrorType ErrCopy = Err;                                           \
+    Verif(Stack, &ErrCopy);                                             \
     ON_DEBUG(ErrPlaceCtor(&ErrCopy, __FILE__, __LINE__, __func__);)      \
-    if (ErrCopy.IsFatalError == 1 || ErrCopy.IsWarning == 1)    \
-    {                                                            \
-        return ErrCopy;                                           \
-    }                                                              \
-} while (0);                                                        \
+    if (ErrCopy.IsFatalError == 1 || ErrCopy.IsWarning == 1)              \
+    {                                                                      \
+        return ErrCopy;                                                     \
+    }                                                                        \
+} while (0)                                                                   \
 
 
-#define RETURN(StackPtr, Err) do                              \
-{                                                              \
-    ErrorType ErrCopy = Err;                                    \
+#define RETURN(StackPtr, Err) do                                      \
+{                                                                      \
+    ErrorType ErrCopy = Err;                                            \
     ON_DEBUG(ErrPlaceCtor(&ErrCopy, __FILE__, __LINE__, __func__);)      \
-    Verif(StackPtr, &ErrCopy);                                    \
-    return ErrCopy;                                                \
-} while (0);                                                        \
+    Verif(StackPtr, &ErrCopy);                                            \
+    return ErrCopy;                                                        \
+} while (0)                                                                 \
 
 
-#define DUMP(Stack) Dump(Stack, __FILE__, __LINE__, __func__);                                                  \
+#define DUMP(Stack) Dump(Stack, __FILE__, __LINE__, __func__);
 
 #ifdef DEBUG
     #define ASSERT(Err) do                                 \
@@ -101,21 +101,20 @@ struct ErrorType
             COLOR_PRINT(CYAN, "abort() in 3, 2, 1...\n")         \
             abort();                                              \
         }                                                          \
-    } while (0);                                                    \
+    } while (0)                                                     \
 
 #else
     #define ASSERT(Err) AssertPrint(Err, __FILE__, __LINE__, __func__);
-
 #endif
 
-void Verif(Stack_t* Stack, ErrorType* Error);
-
-void PrintError(ErrorType Error);
-void Dump(Stack_t* Stack);
-void PrintPlace(const char* File, const int Line, const char* Function);
-void AssertPrint(ErrorType Err, const char* File, int Line, const char* Func);
+void Verif       (Stack_t* Stack, ErrorType* Error);
+void Dump        (Stack_t* Stack, const char* File, int Line, const char* Func);
+void PrintError  (ErrorType Error);
+void PrintPlace  (const char* File, const int Line, const char* Function);
+void AssertPrint (ErrorType Err, const char* File, int Line, const char* Func);
 ON_DEBUG
 (
 void ErrPlaceCtor(ErrorType* Err, const char* File, int Line, const char* Func);
 )
+
 #endif

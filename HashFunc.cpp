@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <malloc.h>
 #include <assert.h>
 #include "HashFunc.h"
@@ -16,7 +17,7 @@ int Hash(void* Arr, size_t ArrSize)
     for (size_t Arr_i = 0; Arr_i < ArrSize; Arr_i++)
     {
         ON_DEBUG(assert((ArrCharPtr + Arr_i) != NULL));
-        ArrHash = (ArrHash * 31) ^ ArrCharPtr[Arr_i];
+        ArrHash = (ArrHash * 33) ^ ArrCharPtr[Arr_i];
     }
 
     return ArrHash;

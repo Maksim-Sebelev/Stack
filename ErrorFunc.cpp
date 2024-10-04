@@ -111,7 +111,7 @@ void Verif(Stack_t* Stack, ErrorType* Error)
     {
         Error->FatalError.CapacityBiggerMax = 0;
     }
-
+    
     if (Stack->Var.File == NULL)
     {
         Error->FatalError.CtorStackFileNull = 1;
@@ -296,22 +296,6 @@ void PrintError(ErrorType Error)
         }
         )
 
-        ON_DHASH
-        (
-        if (Error.FatalError.DataHashChanged == 1)
-        {
-            COLOR_PRINT(RED, "Error: Data Hash is incorrect.\n");
-        }
-        )
-
-        ON_SHASH
-        (
-        if (Error.FatalError.StackHashChanged == 1)
-        {
-            COLOR_PRINT(RED, "Error: Stack Hash is incorrect.\n");
-        }
-        )
-
         ON_DEBUG
         (
         if (Error.FatalError.SizeBiggerCapacity == 1)
@@ -344,6 +328,22 @@ void PrintError(ErrorType Error)
             COLOR_PRINT(RED, "Error: Stack ctor init line is negative or 0.\n");
         }
         );
+
+        ON_DHASH
+        (
+        if (Error.FatalError.DataHashChanged == 1)
+        {
+            COLOR_PRINT(RED, "Error: Data Hash is incorrect.\n");
+        }
+        )
+
+        ON_SHASH
+        (
+        if (Error.FatalError.StackHashChanged == 1)
+        {
+            COLOR_PRINT(RED, "Error: Stack Hash is incorrect.\n");
+        }
+        )
     }
 
     return;
@@ -358,7 +358,7 @@ void Dump(Stack_t* Stack, const char* File, int Line, const char* Func)
     PrintPlace(File, Line, Func);
     ON_DEBUG
     (
-    // #define DANG_DUMP
+    #define DANG_DUMP
 
     #ifndef DANG_DUMP
         ON_SHASH
@@ -518,10 +518,3 @@ void ErrPlaceCtor(ErrorType* Err, const char* File, int Line, const char* Func)
     return;
 }
 )
-// void MakeIsWarning(ErrorType* Err)
-// {
-//     if (Err->Warning.PopInEmptyStack == 1 || Err->Warning.PushInFullStack == 1 || Err->Warning.ToBigCapacity == 1)
-//     {
-//         Err->IsWarning = 1;
-//     }
-// }

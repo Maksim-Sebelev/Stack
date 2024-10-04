@@ -27,7 +27,7 @@ ErrorType Ctor(Stack_t* Stack, size_t StackDataSize ON_DEBUG(, const char* File,
 
     ON_DCANARY
     (
-    Stack->Data[GetLeftDataCanaryIndex(Stack)] = LeftDataCanary;
+    Stack->Data[GetLeftDataCanaryIndex(Stack)]  = LeftDataCanary;
     Stack->Data[GetRightDataCanaryIndex(Stack)] = RightDataCanary;
     )
 
@@ -41,20 +41,19 @@ ErrorType Ctor(Stack_t* Stack, size_t StackDataSize ON_DEBUG(, const char* File,
 
     ON_DEBUG
     (
-    Stack->Var.File  = File;
-    Stack->Var.Line  = Line;
-    Stack->Var.Func  = Func;
-    Stack->Var.Name  = Name;
+    Stack->Var.File = File;
+    Stack->Var.Line = Line;
+    Stack->Var.Func = Func;
+    Stack->Var.Name = Name;
     )
 
     ON_DHASH(Stack->DataHash  = Hash(Stack->Data, Stack->Capacity * sizeof(StackElem_t));)
     ON_SHASH(Stack->StackHash = CalcRealStackHash(Stack);)
-    // DUMP(Stack);
+
     RETURN(Stack, Err);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-
 
 ErrorType Dtor(Stack_t* Stack)
 {
@@ -91,7 +90,6 @@ ErrorType Push(Stack_t*  Stack, StackElem_t PushElem)
 
         RETURN(Stack, Err);
     }
-
     
     Stack->Capacity = GetNewPushCapacity(Stack);
     ON_SHASH(Stack->StackHash = CalcRealStackHash(Stack));
@@ -160,7 +158,7 @@ ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem)
     {
         Err.FatalError.ReallocPopNull = 1;
         Err.IsFatalError = 1;
-        ERR_RETURN_WARN_PRINT(Stack, Err); // log 
+        ERR_RETURN_WARN_PRINT(Stack, Err);
     }
 
     ON_DCANARY(Stack->Data[GetRightDataCanaryIndex(Stack)] = RightDataCanary;)
@@ -195,7 +193,7 @@ int CalcRealStackHash(Stack_t* Stack)
 {
     int StackHashCopy = Stack->StackHash;
     Stack->StackHash  = 0;
-    int RealStackHash = Hash((void*)Stack, sizeof(*Stack));
+    int RealStackHash = Hash(Stack, sizeof(*Stack));
     Stack->StackHash  = StackHashCopy;
     return RealStackHash;
 }
@@ -226,7 +224,6 @@ size_t GetRightDataCanaryIndex(Stack_t* Stack)
 }
 );
 
-
 size_t GetStackCapacity(Stack_t* Stack)
 {
     return Stack->Capacity ON_DCANARY(- 2);
@@ -236,8 +233,6 @@ size_t GetStackSize(Stack_t* Stack)
 {
     return Stack->Size ON_DCANARY(- 1);
 }
-
-
 
 size_t GetNewPushCapacity(Stack_t* Stack)
 {
@@ -261,10 +256,7 @@ size_t GetMaxCapacity()
     return MaxCapacity ON_DCANARY(- 2);
 }
 
-
 size_t GetMinCapacity()
 {
     return MinCapacity ON_DCANARY(- 2);
 }
-
-

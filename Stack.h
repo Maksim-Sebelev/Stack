@@ -54,13 +54,14 @@
     #define ON_POISON(...)
 #endif
 
+
 typedef int StackElem_t;
-typedef int StackCanary_t;
-typedef StackElem_t DataCanary_t;
 
+ON_SCANARY(typedef int StackCanary_t;)
+ON_DCANARY(typedef StackElem_t DataCanary_t;)
 
-const size_t MinCapacity = 2  ON_DCANARY(+ 2);
-const size_t MaxCapacity = 2097152 ON_DCANARY(+ 2); // 2^21 = 2097152
+const size_t MinCapacity = 2       ON_DCANARY(+ 2);
+const size_t MaxCapacity = (1<<21) ON_DCANARY(+ 2); // 2^21 = 2097152
 
 ON_POISON(const int Poison = 0xDEEEEEAD;)
 
@@ -69,7 +70,7 @@ ON_DEBUG
 struct NamePlaceVar
 {
     const char* File;
-    int Line;
+    int         Line;
     const char* Func;
     const char* Name;
 };
@@ -78,12 +79,12 @@ struct NamePlaceVar
 struct Stack_t
 {
     ON_SCANARY(StackCanary_t LeftStackCanary;)
-    ON_DEBUG(NamePlaceVar Var;)
-    StackElem_t* Data; 
-    ON_DHASH(int DataHash;)
     size_t Size;
     size_t Capacity;
+    StackElem_t* Data;
+    ON_DHASH(int DataHash;)
     ON_SHASH(int StackHash;)
+    ON_DEBUG(NamePlaceVar Var;)
     ON_SCANARY(StackCanary_t RightStackCanary;)
 };
 
