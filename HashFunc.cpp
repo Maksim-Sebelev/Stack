@@ -6,18 +6,17 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 
-int Hash(void* Arr, size_t ArrSize)
+uint64_t Hash(void* Arr, size_t ArrSize)
 {
-    ON_DEBUG(assert(Arr != NULL));
-    ON_DEBUG(assert(ArrSize >= 0));
+    assert(Arr != NULL);
 
-    char* ArrCharPtr = (char*) Arr;
-    int ArrHash = 5381;
+    char* ArrChar = (char*) Arr;
+    uint64_t ArrHash = 5381;
 
     for (size_t Arr_i = 0; Arr_i < ArrSize; Arr_i++)
     {
-        ON_DEBUG(assert((ArrCharPtr + Arr_i) != NULL));
-        ArrHash = (ArrHash * 33) ^ ArrCharPtr[Arr_i];
+        assert((ArrChar + Arr_i) != NULL);
+        ArrHash = (ArrHash * 33) ^ ArrChar[Arr_i];
     }
 
     return ArrHash;

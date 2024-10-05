@@ -71,23 +71,14 @@ struct ErrorType
 #define ERR_RETURN_WARN_PRINT(StackPtr, Err) do                      \
 {                                                                     \
     ErrorType ErrCopy = Err;                                           \
-    Verif(Stack, &ErrCopy);                                             \
-    ON_DEBUG(ErrPlaceCtor(&ErrCopy, __FILE__, __LINE__, __func__);)      \
+    Verif(Stack, &ErrCopy ON_DEBUG(, __FILE__, __LINE__, __func__));                                             \
     if (ErrCopy.IsFatalError == 1 || ErrCopy.IsWarning == 1)              \
     {                                                                      \
         return ErrCopy;                                                     \
     }                                                                        \
 } while (0)                                                                   \
 
-
-#define RETURN(StackPtr, Err) do                                      \
-{                                                                      \
-    ErrorType ErrCopy = Err;                                            \
-    ON_DEBUG(ErrPlaceCtor(&ErrCopy, __FILE__, __LINE__, __func__);)      \
-    Verif(StackPtr, &ErrCopy);                                            \
-    return ErrCopy;                                                        \
-} while (0)                                                                 \
-
+#define VERIF(StackPtr, Err) Verif(Stack, &Err ON_DEBUG(, __FILE__, __LINE__, __func__))
 
 #define DUMP(Stack) Dump(Stack, __FILE__, __LINE__, __func__);
 
@@ -98,23 +89,23 @@ struct ErrorType
         AssertPrint(ErrCopy, __FILE__, __LINE__, __func__);   \
         if (ErrCopy.IsFatalError == 1)                         \
         {                                                       \
-            COLOR_PRINT(CYAN, "abort() in 3, 2, 1...\n")         \
+            COLOR_PRINT(CYAN, "abort() in 3, 2, 1...\n");        \
             abort();                                              \
         }                                                          \
     } while (0)                                                     \
 
 #else
-    #define ASSERT(Err) AssertPrint(Err, __FILE__, __LINE__, __func__);
+    #define ASSERT(Err) AssertPrint(Err, __FILE__, __LINE__, __func__)
 #endif
 
-void Verif       (Stack_t* Stack, ErrorType* Error);
-void Dump        (Stack_t* Stack, const char* File, int Line, const char* Func);
-void PrintError  (ErrorType Error);
-void PrintPlace  (const char* File, const int Line, const char* Function);
-void AssertPrint (ErrorType Err, const char* File, int Line, const char* Func);
+ErrorType Verif        (Stack_t* Stack, ErrorType* Error ON_DEBUG(, const char* File, int Line, const char* Func));
+void      Dump         (Stack_t* Stack, const char* File, int Line, const char* Func);
+void      PrintError   (ErrorType Error);
+void      PrintPlace   (const char* File, const int Line, const char* Function);
+void      AssertPrint  (ErrorType Err, const char* File, int Line, const char* Func);
 ON_DEBUG
 (
-void ErrPlaceCtor(ErrorType* Err, const char* File, int Line, const char* Func);
+void ErrPlaceCtor (ErrorType* Err, const char* File, int Line, const char* Func);
 )
 
 #endif

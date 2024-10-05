@@ -10,13 +10,15 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void Verif(Stack_t* Stack, ErrorType* Error)
+ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_DEBUG(, const char* File, int Line, const char* Func))
 {
+    ON_DEBUG(ErrPlaceCtor(Error, File, Line, Func);)
+ 
     if (Stack == NULL)
     {
         Error->FatalError.StackNull = 1;
         Error->IsFatalError = 1;
-        return;
+        return *Error;
     }  
     else
     {
@@ -27,7 +29,7 @@ void Verif(Stack_t* Stack, ErrorType* Error)
     {
         Error->FatalError.DataNull = 1;
         Error->IsFatalError = 1;
-        return;
+        return *Error;
     }
     else
     {
@@ -82,7 +84,7 @@ void Verif(Stack_t* Stack, ErrorType* Error)
 
     ON_DEBUG
     (
-    if (GetStackSize(Stack) > GetStackCapacity(Stack))
+    if (Stack->Size > Stack->Capacity)
     {
         Error->FatalError.SizeBiggerCapacity = 1;
         Error->IsFatalError = 1;
@@ -156,7 +158,7 @@ void Verif(Stack_t* Stack, ErrorType* Error)
     ON_POISON
     (
     int WasNotPosion = 0;
-    for (size_t Data_i = Stack->Size; Data_i < Stack->Capacity - 1; Data_i++)
+    for (size_t Data_i = Stack->Size; Data_i < Stack->Capacity; Data_i++)
     {
         if (Stack->Data[Data_i] != Poison)
         {
@@ -198,7 +200,7 @@ void Verif(Stack_t* Stack, ErrorType* Error)
         Error->FatalError.StackHashChanged = 0;
     }
     );
-
+    return *Error;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -389,13 +391,13 @@ void Dump(Stack_t* Stack, const char* File, int Line, const char* Func)
     (
     if (&Stack->Var == NULL)
     {
-        COLOR_PRINT(RED, "Stack.Var ptr is NULL\n");
+        COLOR_PRINT(RED, "Stack.Var = NULL\n");
         return;
     }
 
     if (Stack->Var.Name == NULL)
     {
-        COLOR_PRINT(RED, "Stack.Var.Name is NULL\n");
+        COLOR_PRINT(RED, "Stack.Var.Name = NULL\n");
     }
     else
     {
@@ -404,7 +406,7 @@ void Dump(Stack_t* Stack, const char* File, int Line, const char* Func)
 
     if (Stack->Var.File == NULL)
     {
-        COLOR_PRINT(RED, "Stack.Var.File is NULL\n");
+        COLOR_PRINT(RED, "Stack.Var.File = NULL\n");
     }
     else
     {
@@ -433,48 +435,48 @@ void Dump(Stack_t* Stack, const char* File, int Line, const char* Func)
     COLOR_PRINT(VIOLET, "&Stack = 0x%p\n", Stack);
     COLOR_PRINT(VIOLET, "&Data  = 0x%p\n\n", Stack->Data);
 
-    ON_SCANARY
-    (
-    COLOR_PRINT(YELLOW, "Left  Stack Canary = 0x%8x = %8d\n", Stack->LeftStackCanary, Stack->LeftStackCanary);
-    COLOR_PRINT(YELLOW, "Right Stack Canary = 0x%8x = %8d\n\n", Stack->RightStackCanary, Stack->RightStackCanary);
-    )
-    ON_DCANARY
-    (
-    COLOR_PRINT(YELLOW, "Left  Data  Canary = 0x%8x = %8d\n", GetLeftDataCanary(Stack), GetLeftDataCanary(Stack));
-    COLOR_PRINT(YELLOW, "Right Data  Canary = 0x%8x = %8d\n\n", GetRightDataCanary(Stack), GetRightDataCanary(Stack));
-    )
+    // ON_SCANARY
+    // (
+    // COLOR_PRINT(YELLOW, "Left  Stack Canary = 0x%x = %d\n", Stack->LeftStackCanary, Stack->LeftStackCanary);
+    // COLOR_PRINT(YELLOW, "Right Stack Canary = 0x%x = %d\n\n", Stack->RightStackCanary, Stack->RightStackCanary);
+    // )
+    // ON_DCANARY
+    // (
+    // COLOR_PRINT(YELLOW, "Left  Data  Canary = 0x%x = %d\n", GetLeftDataCanary(Stack), GetLeftDataCanary(Stack));
+    // COLOR_PRINT(YELLOW, "Right Data  Canary = 0x%x = %d\n\n", GetRightDataCanary(Stack), GetRightDataCanary(Stack));
+    // )
 
-    ON_SHASH(COLOR_PRINT(BLUE, "Stack Hash = %d\n", Stack->StackHash);)
-    ON_DHASH(COLOR_PRINT(BLUE, "Data  Hash = %d\n\n", Stack->DataHash);)
+    // ON_SHASH(COLOR_PRINT(BLUE, "Stack Hash = %d\n", Stack->StackHash);)
+    // ON_DHASH(COLOR_PRINT(BLUE, "Data  Hash = %d\n\n", Stack->DataHash);)
 
-    COLOR_PRINT(CYAN, "Size = %u\n", GetStackSize(Stack));
-    COLOR_PRINT(CYAN, "Capacity = %u\n\n", GetStackCapacity(Stack));
+    COLOR_PRINT(CYAN, "Size = %u\n", Stack->Size);
+    COLOR_PRINT(CYAN, "Capacity = %u\n\n", Stack->Capacity);
 
 
     ON_POISON(COLOR_PRINT(GREEN, "Poison = 0x%x = %d\n\n", Poison, Poison);)
 
     COLOR_PRINT(BLUE, "Data = \n{\n");
-    for (size_t Data_i = GetDataBeginIndex(Stack); Data_i < Stack->Size; Data_i++)
+    for (size_t Data_i = 0; Data_i < Stack->Size; Data_i++)
     {
-        COLOR_PRINT(BLUE, "*[%2u] %d\n", Data_i ON_DCANARY(- 1), Stack->Data[Data_i]);
+        COLOR_PRINT(BLUE, "*[%2u] %d\n", Data_i, Stack->Data[Data_i]);
     }
 
-    for (size_t Data_i = Stack->Size; Data_i < Stack->Capacity - 1; Data_i++)
+    for (size_t Data_i = Stack->Size; Data_i < Stack->Capacity; Data_i++)
     {
-        COLOR_PRINT(CYAN, " [%2u] 0x%x\n", Data_i ON_DCANARY(- 1), Stack->Data[Data_i]);   
+        COLOR_PRINT(CYAN, " [%2u] 0x%x\n", Data_i, Stack->Data[Data_i]);   
     }
     COLOR_PRINT(BLUE, "};\n\n");
 
 
     COLOR_PRINT(VIOLET, "Data ptrs = \n{\n");
-    for (size_t Data_i = GetDataBeginIndex(Stack); Data_i < Stack->Size; Data_i++)
+    for (size_t Data_i = 0; Data_i < Stack->Size; Data_i++)
     {
-        COLOR_PRINT(VIOLET, "*[%2u] 0x%p\n", Data_i ON_DCANARY(- 1), &Stack->Data[Data_i]);
+        COLOR_PRINT(VIOLET, "*[%2u] 0x%p\n", Data_i, &Stack->Data[Data_i]);
     }
 
-    for (size_t Data_i = Stack->Size; Data_i < Stack->Capacity - 1; Data_i++)
+    for (size_t Data_i = Stack->Size; Data_i < Stack->Capacity; Data_i++)
     {
-        COLOR_PRINT(CYAN, " [%2u] 0x%p\n", Data_i ON_DCANARY(- 1), &Stack->Data[Data_i]);   
+        COLOR_PRINT(CYAN, " [%2u] 0x%p\n", Data_i, &Stack->Data[Data_i]);   
     }
     COLOR_PRINT(VIOLET, "};\n");
 
