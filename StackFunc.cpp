@@ -64,13 +64,13 @@ ErrorType Dtor(Stack_t* Stack)
 ErrorType Push(Stack_t*  Stack, StackElem_t PushElem)
 {
     ErrorType Err = {};
-    ERR_RETURN_WARN_PRINT(Stack, Err);
+    RETURN_IF_ERR_OR_WARN(Stack, Err);
 
     if (Stack->Size + 1 > MaxCapacity)
     {
         Err.Warning.PushInFullStack = 1;
         Err.IsWarning = 1;
-        ERR_RETURN_WARN_PRINT(Stack, Err);
+        RETURN_IF_ERR_OR_WARN(Stack, Err);
     }
 
     Stack->Size++;
@@ -119,13 +119,13 @@ ErrorType Push(Stack_t*  Stack, StackElem_t PushElem)
 ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem)
 {
     ErrorType Err = {};
-    ERR_RETURN_WARN_PRINT(Stack, Err);
+    RETURN_IF_ERR_OR_WARN(Stack, Err);
 
     if (Stack->Size == 0)
     {
         Err.Warning.PopInEmptyStack = 1;
         Err.IsWarning = 1;
-        ERR_RETURN_WARN_PRINT(Stack, Err);
+        RETURN_IF_ERR_OR_WARN(Stack, Err);
     }
 
     *PopElem = Stack->Data[Stack->Size];
@@ -159,7 +159,7 @@ ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem)
 ErrorType PrintStack(Stack_t* Stack)
 {
     ErrorType Err = {};
-    ERR_RETURN_WARN_PRINT(Stack, Err);
+    RETURN_IF_ERR_OR_WARN(Stack, Err);
 
     printf("\nStack:\n");
     for (size_t Stack_i = 0; Stack_i < Stack->Size; Stack_i++)

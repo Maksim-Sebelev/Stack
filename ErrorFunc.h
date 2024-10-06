@@ -68,7 +68,7 @@ struct ErrorType
 };
 
 
-#define ERR_RETURN_WARN_PRINT(StackPtr, Err) do                      \
+#define RETURN_IF_ERR_OR_WARN(StackPtr, Err) do                      \
 {                                                                     \
     ErrorType ErrCopy = Err;                                           \
     Verif(Stack, &ErrCopy ON_DEBUG(, __FILE__, __LINE__, __func__));                                             \
