@@ -1,58 +1,250 @@
 #ifndef STACK_FUNC_H
 #define STACK_FUNC_H
 
-#include "Stack.h"
-#include "ErrorFunc.h"
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include "ColorPrint.h"
 
+#define DEBUG
+#define STACK_CANARY
+#define DATA_CANARY
+#define STACK_HASH
+#define DATA_HASH
+#define POISON
 
 #ifdef DEBUG
-    #define CTOR(StackPtr, StackSize, Name) Ctor(StackPtr, StackSize, __FILE__, __LINE__, __func__, Name)
+    #define ON_DEBUG(...) __VA_ARGS__
+    #define OFF_DEBUG(...)
 #else
-    #define CTOR(StackPtr, StackSize)       Ctor(StackPtr, StackSize)
+    #define ON_DEBUG(...)
+    #define OFF_DEBUG(...) __VA_ARGS__
 #endif
+
+
+#ifdef STACK_CANARY
+    #define ON_SCANARY(...) __VA_ARGS__
+#else
+    #define ON_SCANARY(...)
+#endif
+
+
+#ifdef DATA_CANARY
+    #define ON_DCANARY(...)  __VA_ARGS__
+#else
+    #define ON_DCANARY(...)
+#endif
+
+
+#ifdef STACK_HASH
+    #define ON_SHASH(...) __VA_ARGS__
+#else   
+    #define ON_SHASH(...)
+#endif
+
+
+#ifdef DATA_HASH
+    #define ON_DHASH(...) __VA_ARGS__
+#else
+    #define ON_DHASH(...)
+#endif
+
+
+#ifdef POISON
+    #define ON_POISON(...) __VA_ARGS__
+#else
+    #define ON_POISON(...)
+#endif
+
+
+typedef int StackElem_t;
+
+ON_SCANARY(typedef uint64_t StackCanary_t;)
+ON_DCANARY(typedef uint64_t DataCanary_t;)
+
+ON_DEBUG
+(
+struct NamePlaceVar
+{
+    const char* File;
+    int         Line;
+    const char* Func;
+    const char* Name;
+};
+)
+
+struct Stack_t
+{
+    ON_SCANARY(StackCanary_t LeftStackCanary;)
+    size_t Size;
+    size_t Capacity;
+    StackElem_t* Data;
+    ON_DEBUG(NamePlaceVar Var;)
+    ON_DHASH(uint64_t DataHash;)
+    ON_SHASH(uint64_t StackHash;)
+    ON_SCANARY(StackCanary_t RightStackCanary;)
+};
+
+
+struct Warnings
+{
+    unsigned char PopInEmptyStack             : 1;
+    unsigned char ToBigCapacity               : 1;
+    unsigned char PushInFullStack             : 1;
+};
+
+ 
+struct FatalErrors
+{
+    unsigned int StackNull                   : 1;
+    unsigned int DataNull                    : 1;
+    unsigned int CallocCtorNull              : 1;
+    unsigned int ReallocPushNull             : 1;
+    unsigned int ReallocPopNull              : 1;
+    ON_SCANARY
+    (
+    unsigned int LeftStackCanaryChanged      : 1;
+    unsigned int RightStackCanaryChanged     : 1;
+    )
+    ON_DCANARY
+    (
+    unsigned int LeftDataCanaryChanged       : 1;
+    unsigned int RightDataCanaryChanged      : 1;
+    )
+    ON_POISON
+    (
+    unsigned int DataElemBiggerSizeNotPoison : 1;
+    )
+    ON_SHASH
+    (    
+    unsigned int StackHashChanged            : 1;
+    )
+    ON_DHASH
+    (
+    unsigned int DataHashChanged             : 1;
+    )
+    ON_DEBUG
+    (
+    unsigned int SizeBiggerCapacity          : 1;
+    unsigned int CapacitySmallerMin          : 1;
+    unsigned int CapacityBiggerMax           : 1;
+    unsigned int CtorStackNameNull           : 1;
+    unsigned int CtorStackFileNull           : 1;
+    unsigned int CtorStackFuncNull           : 1;
+    unsigned int CtorStackLineNegative       : 1;
+    )
+};
+
+
+struct ErrorType
+{
+    unsigned int IsFatalError : 1;
+    unsigned int IsWarning    : 1;
+    Warnings Warning;
+    FatalErrors FatalError;
+    const char* File;
+    int Line;
+    const char* Func;
+};
+
+static const size_t MinCapacity = 8;
+static const size_t MaxCapacity = 1<<21;
+
+ON_POISON
+(
+static const StackElem_t Poison = 0xDEEEEEAD;
+)
 
 ON_SCANARY
 (
-const StackCanary_t LeftStackCanary  = 0xDEEADDEAD;
-const StackCanary_t RightStackCanary = 0xDEADDED;
+static const StackCanary_t LeftStackCanary  = 0xDEEADD;
+static const StackCanary_t RightStackCanary = 0xDEADDD;
 )
 
 ON_DCANARY
 (
-const DataCanary_t LeftDataCanary  = 0xEDADEDA;
-const DataCanary_t RightDataCanary = 0xDEDDEAD;
+static const DataCanary_t LeftDataCanary  = 0xEDADEEEEEEEEEEEE;
+static const DataCanary_t RightDataCanary = 0xDEDADEEEE;
 )
 
-const unsigned int CapPushReallocCoef = 2;
-const unsigned int CapPopReallocCoef  = 4;
+static const unsigned int CapPushReallocCoef = 2;
+static const unsigned int CapPopReallocCoef  = 4;
+
+//operation with stack
 
 ErrorType Ctor       (Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char* File, int Line, const char* Func, const char* Name));
 ErrorType Dtor       (Stack_t* Stack);
-ErrorType Push       (Stack_t*, StackElem_t PushElem);
-ErrorType Pop        (Stack_t* Stack, StackElem_t* PopElem);
 ErrorType PrintStack (Stack_t* Stack);
+ErrorType Push       (Stack_t* Stack, StackElem_t PushElem);
+ErrorType Pop        (Stack_t* Stack, StackElem_t* PopElem);
+
+//helper func for stack
+
 ON_SHASH
 (
-uint64_t CalcRealStackHash (Stack_t* Stack);
+uint64_t CalcStackHashWithFixedDefaultStackHash (Stack_t* Stack);
 )
 ON_DCANARY
 (
-DataCanary_t GetLeftDataCanary       (Stack_t* Stack);
-DataCanary_t GetRightDataCanary      (Stack_t* Stack);
-size_t       GetLeftDataCanaryIndex  (Stack_t* Stack);
-size_t       GetRightDataCanaryIndex (Stack_t* Stack);
+DataCanary_t GetLeftDataCanary     (Stack_t* Stack);
+DataCanary_t GetRightDataCanary    (Stack_t* Stack);
+void         AssignLeftDataCanary  (Stack_t* Stack);
+void         AssignRightDataCanary (Stack_t* Stack);
 );
-size_t GetNewCtorCapacit (size_t StackDataSize);
-size_t GetNewPushCapacit (Stack_t* Stack);
-size_t GetNewPopCapacity (Stack_t* Stack);
-size_t GetNewCapacity    (size_t Capacity); 
+
+size_t GetCapacityDivisibleByDataCanarySize (size_t Capacity); 
+size_t GetNewCtorCapacity                   (size_t StackDataSize);
+size_t GetNewPushCapacity                   (Stack_t* Stack);
+size_t GetNewPopCapacity                    (Stack_t* Stack);
+
+ErrorType CtorCalloc   (Stack_t* Stack, ErrorType* Err, size_t StackDataSize);
+ErrorType DtorFreeData (Stack_t* Stack, ErrorType* Err);
+ErrorType PushRealloc  (Stack_t* Stack, ErrorType* Err);
+ErrorType PopRealloc   (Stack_t* Stack, ErrorType* Err);
+
+//--------------------------------------------------------------------------------------------------------------------------
+
+//stack error func
+
+#define VERIF(StackPtr, Err) Verif (StackPtr, &Err ON_DEBUG(, __FILE__, __LINE__, __func__))
+
+#define DUMP(Stack) Dump (Stack, __FILE__, __LINE__, __func__)
+
+#define RETURN_IF_ERR_OR_WARN(StackPtr, Err) do                      \
+{                                                                     \
+    ErrorType ErrCopy = Err;                                           \
+    Verif(Stack, &ErrCopy ON_DEBUG(, __FILE__, __LINE__, __func__));    \
+    if (ErrCopy.IsFatalError == 1 || ErrCopy.IsWarning == 1)             \
+    {                                                                     \
+        return ErrCopy;                                                    \
+    }                                                                       \
+} while (0)                                                                  \
+
+#ifdef DEBUG
+    #define ASSERT(Err) do                                 \
+    {                                                       \
+        ErrorType ErrCopy = Err;                             \
+        AssertPrint(ErrCopy, __FILE__, __LINE__, __func__);   \
+        if (ErrCopy.IsFatalError == 1)                         \
+        {                                                       \
+            COLOR_PRINT(CYAN, "abort() in 3, 2, 1...\n");        \
+            abort();                                              \
+        }                                                          \
+    } while (0)                                                     \
+
+#else
+    #define ASSERT(Err) AssertPrint(Err, __FILE__, __LINE__, __func__)
+#endif
 
 
-
-ErrorType PushReallocWithNewCapacity (Stack_t* Stack, ErrorType* Err);
-ErrorType PopReallocWithNewCapacity  (Stack_t* Stack, ErrorType* Err);
-ErrorType CtorCallocWithNewCapacity  (Stack_t* Stack, ErrorType* Err, size_t StackDataSize);
-ErrorType DtorFreeData               (Stack_t* Stack, ErrorType* Err);
-
+ErrorType Verif        (Stack_t* Stack, ErrorType* Error ON_DEBUG(, const char* File, int Line, const char* Func));
+void      Dump         (Stack_t* Stack, const char* File, int Line, const char* Func);
+void      PrintError   (ErrorType Error);
+void      AssertPrint  (ErrorType Err, const char* File, int Line, const char* Func);
+void      PrintPlace   (const char* File, const int Line, const char* Function);
+ON_DEBUG
+(
+void ErrPlaceCtor      (ErrorType* Err, const char* File, int Line, const char* Func);
+)
 
 #endif

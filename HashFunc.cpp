@@ -2,7 +2,7 @@
 #include <malloc.h>
 #include <assert.h>
 #include "HashFunc.h"
-#include "Stack.h"
+#include "StackFunc.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -1,6 +1,6 @@
 CC = g++
-CFLAGS = -c -Wall
-FILES_CPP = main.cpp StackFunc.cpp ErrorFunc.cpp HashFunc.cpp
+CFLAGS = -c
+FILES_CPP = main.cpp StackFunc.cpp HashFunc.cpp
 OBJECTS = $(FILES_CPP:.cpp=.o)
 HEADERS = $(FILES_CPP:.cpp=.h)
 
