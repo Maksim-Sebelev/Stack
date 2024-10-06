@@ -96,42 +96,42 @@ struct Warnings
  
 struct FatalErrors
 {
-    unsigned int StackNull                   : 1;
-    unsigned int DataNull                    : 1;
-    unsigned int CallocCtorNull              : 1;
-    unsigned int ReallocPushNull             : 1;
-    unsigned int ReallocPopNull              : 1;
+    unsigned char StackNull                   : 1;
+    unsigned char DataNull                    : 1;
+    unsigned char CallocCtorNull              : 1;
+    unsigned char ReallocPushNull             : 1;
+    unsigned char ReallocPopNull              : 1;
     ON_SCANARY
     (
-    unsigned int LeftStackCanaryChanged      : 1;
-    unsigned int RightStackCanaryChanged     : 1;
+    unsigned char LeftStackCanaryChanged      : 1;
+    unsigned char RightStackCanaryChanged     : 1;
     )
     ON_DCANARY
     (
-    unsigned int LeftDataCanaryChanged       : 1;
-    unsigned int RightDataCanaryChanged      : 1;
+    unsigned char LeftDataCanaryChanged       : 1;
+    unsigned char RightDataCanaryChanged      : 1;
     )
     ON_POISON
     (
-    unsigned int DataElemBiggerSizeNotPoison : 1;
+    unsigned char DataElemBiggerSizeNotPoison : 1;
     )
     ON_SHASH
     (    
-    unsigned int StackHashChanged            : 1;
+    unsigned char StackHashChanged            : 1;
     )
     ON_DHASH
     (
-    unsigned int DataHashChanged             : 1;
+    unsigned char DataHashChanged             : 1;
     )
     ON_DEBUG
     (
-    unsigned int SizeBiggerCapacity          : 1;
-    unsigned int CapacitySmallerMin          : 1;
-    unsigned int CapacityBiggerMax           : 1;
-    unsigned int CtorStackNameNull           : 1;
-    unsigned int CtorStackFileNull           : 1;
-    unsigned int CtorStackFuncNull           : 1;
-    unsigned int CtorStackLineNegative       : 1;
+    unsigned char SizeBiggerCapacity          : 1;
+    unsigned char CapacitySmallerMin          : 1;
+    unsigned char CapacityBiggerMax           : 1;
+    unsigned char CtorStackNameNull           : 1;
+    unsigned char CtorStackFileNull           : 1;
+    unsigned char CtorStackFuncNull           : 1;
+    unsigned char CtorStackLineNegative       : 1;
     )
 };
 
@@ -182,25 +182,25 @@ ErrorType Pop        (Stack_t* Stack, StackElem_t* PopElem);
 
 ON_SHASH
 (
-uint64_t CalcStackHashWithFixedDefaultStackHash (Stack_t* Stack);
+static uint64_t CalcStackHashWithFixedDefaultStackHash (Stack_t* Stack);
 )
 ON_DCANARY
 (
-DataCanary_t GetLeftDataCanary     (Stack_t* Stack);
-DataCanary_t GetRightDataCanary    (Stack_t* Stack);
-void         AssignLeftDataCanary  (Stack_t* Stack);
-void         AssignRightDataCanary (Stack_t* Stack);
+static DataCanary_t GetLeftDataCanary     (Stack_t* Stack);
+static DataCanary_t GetRightDataCanary    (Stack_t* Stack);
+static void         AssignLeftDataCanary  (Stack_t* Stack);
+static void         AssignRightDataCanary (Stack_t* Stack);
 );
 
-size_t GetCapacityDivisibleByDataCanarySize (size_t Capacity); 
-size_t GetNewCtorCapacity                   (size_t StackDataSize);
-size_t GetNewPushCapacity                   (Stack_t* Stack);
-size_t GetNewPopCapacity                    (Stack_t* Stack);
+static size_t GetCapacityDivisibleByDataCanarySize (size_t Capacity); 
+static size_t GetNewCtorCapacity                   (size_t StackDataSize);
+static size_t GetNewPushCapacity                   (Stack_t* Stack);
+static size_t GetNewPopCapacity                    (Stack_t* Stack);
 
-ErrorType CtorCalloc   (Stack_t* Stack, ErrorType* Err, size_t StackDataSize);
-ErrorType DtorFreeData (Stack_t* Stack, ErrorType* Err);
-ErrorType PushRealloc  (Stack_t* Stack, ErrorType* Err);
-ErrorType PopRealloc   (Stack_t* Stack, ErrorType* Err);
+static ErrorType CtorCalloc   (Stack_t* Stack, ErrorType* Err, size_t StackDataSize);
+static ErrorType DtorFreeData (Stack_t* Stack, ErrorType* Err);
+static ErrorType PushRealloc  (Stack_t* Stack, ErrorType* Err);
+static ErrorType PopRealloc   (Stack_t* Stack, ErrorType* Err);
 
 //--------------------------------------------------------------------------------------------------------------------------
 
@@ -237,14 +237,15 @@ ErrorType PopRealloc   (Stack_t* Stack, ErrorType* Err);
 #endif
 
 
-ErrorType Verif        (Stack_t* Stack, ErrorType* Error ON_DEBUG(, const char* File, int Line, const char* Func));
-void      Dump         (Stack_t* Stack, const char* File, int Line, const char* Func);
-void      PrintError   (ErrorType Error);
-void      AssertPrint  (ErrorType Err, const char* File, int Line, const char* Func);
-void      PrintPlace   (const char* File, const int Line, const char* Function);
+static ErrorType Verif (Stack_t* Stack, ErrorType* Error ON_DEBUG(, const char* File, int Line, const char* Func));
+
+void        Dump         (Stack_t* Stack, const char* File, int Line, const char* Func);
+void AssertPrint         (ErrorType Err, const char* File, int Line, const char* Func);
+static void PrintError   (ErrorType Error);
+static void PrintPlace   (const char* File, const int Line, const char* Function);
 ON_DEBUG
 (
-void ErrPlaceCtor      (ErrorType* Err, const char* File, int Line, const char* Func);
+static void ErrPlaceCtor (ErrorType* Err, const char* File, int Line, const char* Func);
 )
 
 #endif
