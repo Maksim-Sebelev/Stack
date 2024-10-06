@@ -329,7 +329,7 @@ void PrintError(ErrorType Error)
         {
             COLOR_PRINT(RED, "Error: Stack ctor init line is negative or 0.\n");
         }
-        );
+        )
 
         ON_DHASH
         (
@@ -377,7 +377,7 @@ void Dump(Stack_t* Stack, const char* File, int Line, const char* Func)
         COLOR_PRINT(YELLOW, "WARNING: Dump is in dangerous mode.\n");
         COLOR_PRINT(YELLOW, "Undefined bahavior is possible.\n\n");
     #endif
-    );
+    )
 
     COLOR_PRINT(VIOLET, "Stack data during Ctor:\n");
 
@@ -435,19 +435,19 @@ void Dump(Stack_t* Stack, const char* File, int Line, const char* Func)
     COLOR_PRINT(VIOLET, "&Stack = 0x%p\n", Stack);
     COLOR_PRINT(VIOLET, "&Data  = 0x%p\n\n", Stack->Data);
 
-    // ON_SCANARY
-    // (
-    // COLOR_PRINT(YELLOW, "Left  Stack Canary = 0x%x = %d\n", Stack->LeftStackCanary, Stack->LeftStackCanary);
-    // COLOR_PRINT(YELLOW, "Right Stack Canary = 0x%x = %d\n\n", Stack->RightStackCanary, Stack->RightStackCanary);
-    // )
-    // ON_DCANARY
-    // (
-    // COLOR_PRINT(YELLOW, "Left  Data  Canary = 0x%x = %d\n", GetLeftDataCanary(Stack), GetLeftDataCanary(Stack));
-    // COLOR_PRINT(YELLOW, "Right Data  Canary = 0x%x = %d\n\n", GetRightDataCanary(Stack), GetRightDataCanary(Stack));
-    // )
+    ON_SCANARY
+    (
+    COLOR_PRINT(YELLOW, "Left  Stack Canary = 0x%llx = %llu\n", Stack->LeftStackCanary, Stack->LeftStackCanary);
+    COLOR_PRINT(YELLOW, "Right Stack Canary = 0x%llx = %llu\n\n", Stack->RightStackCanary, Stack->RightStackCanary);
+    )
+    ON_DCANARY
+    (
+    COLOR_PRINT(YELLOW, "Left  Data  Canary = 0x%llx = %llu\n", GetLeftDataCanary(Stack), GetLeftDataCanary(Stack));
+    COLOR_PRINT(YELLOW, "Right Data  Canary = 0x%llx = %llu\n\n", GetRightDataCanary(Stack), GetRightDataCanary(Stack));
+    )
 
-    // ON_SHASH(COLOR_PRINT(BLUE, "Stack Hash = %d\n", Stack->StackHash);)
-    // ON_DHASH(COLOR_PRINT(BLUE, "Data  Hash = %d\n\n", Stack->DataHash);)
+    ON_SHASH(COLOR_PRINT(BLUE, "Stack Hash = %llu\n", Stack->StackHash);)
+    ON_DHASH(COLOR_PRINT(BLUE, "Data  Hash = %llu\n\n", Stack->DataHash);)
 
     COLOR_PRINT(CYAN, "Size = %u\n", Stack->Size);
     COLOR_PRINT(CYAN, "Capacity = %u\n\n", Stack->Capacity);

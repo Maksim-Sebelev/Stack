@@ -53,7 +53,7 @@ size_t GetNewCapacity                (size_t Capacity);
 
 ErrorType PushReallocWithNewCapacity (Stack_t* Stack, ErrorType* Err);
 ErrorType PopReallocWithNewCapacity  (Stack_t* Stack, ErrorType* Err);
-ErrorType CtorCallocDataWithNewCapacity             (Stack_t* Stack, ErrorType* Err);
+ErrorType CtorCallocWithNewCapacity  (Stack_t* Stack, ErrorType* Err, size_t StackDataSize);
 ErrorType DtorFreeData               (Stack_t* Stack, ErrorType* Err);
 
 

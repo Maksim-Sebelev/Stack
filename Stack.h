@@ -62,9 +62,9 @@ ON_SCANARY(typedef uint64_t StackCanary_t;)
 ON_DCANARY(typedef uint64_t DataCanary_t;)
 
 const size_t MinCapacity = 2;
-const size_t MaxCapacity = 1<<21; // 2^21 = 2097152
+const size_t MaxCapacity = 1<<21;
 
-ON_POISON(const int Poison = 0xDEEEEEAD;)
+ON_POISON(const StackElem_t Poison = 0xDEEEEEAD;)
 
 ON_DEBUG
 (
@@ -83,9 +83,9 @@ struct Stack_t
     size_t Size;
     size_t Capacity;
     StackElem_t* Data;
+    ON_DEBUG(NamePlaceVar Var;)
     ON_DHASH(uint64_t DataHash;)
     ON_SHASH(uint64_t StackHash;)
-    ON_DEBUG(NamePlaceVar Var;)
     ON_SCANARY(StackCanary_t RightStackCanary;)
 };
 

@@ -10,10 +10,7 @@ ErrorType Ctor(Stack_t* Stack, size_t StackDataSize ON_DEBUG(, const char* File,
 {
     ErrorType Err = {};
 
-    Stack->Capacity = GetNewCtorCapacity(StackDataSize);
-    CtorCallocDataWithNewCapacity(Stack, &Err);
-
-    // ERR_RETURN_WARN_PRINT(Stack, Err);
+    CtorCallocWithNewCapacity(Stack, &Err, StackDataSize);
 
     Stack->Size = 0;
     ON_SCANARY
@@ -46,8 +43,6 @@ ErrorType Ctor(Stack_t* Stack, size_t StackDataSize ON_DEBUG(, const char* File,
 
     ON_DHASH(Stack->DataHash  = Hash(Stack->Data, Stack->Capacity * sizeof(StackElem_t));)
     ON_SHASH(Stack->StackHash = CalcRealStackHash(Stack);)
-
-    // DUMP(Stack);
 
     return VERIF(Stack, Err);
 }
@@ -294,8 +289,9 @@ ErrorType PopReallocWithNewCapacity(Stack_t* Stack, ErrorType* Err)
     return *Err;
 }
 
-ErrorType CtorCallocDataWithNewCapacity(Stack_t* Stack, ErrorType* Err)
+ErrorType CtorCallocWithNewCapacity(Stack_t* Stack, ErrorType* Err, size_t StackDataSize)
 {
+    Stack->Capacity = GetNewCtorCapacity(StackDataSize);
     Stack->Data = (StackElem_t*) calloc (Stack->Capacity * sizeof(StackElem_t) ON_DCANARY(+ 2 * sizeof(DataCanary_t)), sizeof(char));
     if (Stack->Data == NULL)
     {
