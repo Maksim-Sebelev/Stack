@@ -97,7 +97,7 @@ ErrorType Push(Stack_t*  Stack, StackElem_t PushElem)
 
     ON_POISON
     (
-    for (size_t Data_i = Stack->Size; Data_i < GetRightDataCanaryIndex(Stack); Data_i++)
+    for (size_t Data_i = Stack->Size; Data_i < Stack->Capacity; Data_i++)
     {
         Stack->Data[Data_i] = Poison;
     }
@@ -203,12 +203,12 @@ size_t GetLeftDataCanaryIndex(Stack_t* Stack)
 {
     return -1;
 }
-);
 
 size_t GetRightDataCanaryIndex(Stack_t* Stack)
 {
     return Stack->Capacity;
 }
+);
 
 
 size_t GetNewCtorCapacity(size_t StackDataSize)
