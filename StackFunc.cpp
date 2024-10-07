@@ -15,13 +15,13 @@ static const unsigned int CapPopReallocCoef  = 4;
 
 ON_SCANARY
 (
-static const StackCanary_t LeftStackCanary  = 0xDEEADD;
-static const StackCanary_t RightStackCanary = 0xDEADDD;
+static const StackCanary_t LeftStackCanary  = 0xDEEADDEADDEAD;
+static const StackCanary_t RightStackCanary = 0xDEADDEDDEADED;
 )
 ON_DCANARY
 (
-static const DataCanary_t LeftDataCanary  = 0xEDADEEEEEEEEEEEE;
-static const DataCanary_t RightDataCanary = 0xDEDADEEEE;
+static const DataCanary_t LeftDataCanary  = 0xEDADEDAEDADEDA;
+static const DataCanary_t RightDataCanary = 0xDEDDEADDEDDEAD;
 )
 ON_POISON
 (
@@ -370,7 +370,6 @@ static ErrorType DtorFreeData(Stack_t* Stack, ErrorType* Err)
 //----------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------------------
 
-
 static ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_DEBUG(, const char* File, int Line, const char* Func))
 {
     ON_DEBUG(ErrPlaceCtor(Error, File, Line, Func);)
@@ -714,14 +713,14 @@ static void PrintError(ErrorType Error)
 
 //----------------------------------------------------------------------------------------------------------------------
 
+ON_DEBUG
+(
 void Dump(Stack_t* Stack, const char* File, int Line, const char* Func)
 {   
     COLOR_PRINT(GREEN, "\nDump BEGIN\n\n");
     COLOR_PRINT(VIOLET, "Where Dump made:\n");
     PrintPlace(File, Line, Func);
 
-    ON_DEBUG
-    (
     #define DANG_DUMP
 
     #ifndef DANG_DUMP
@@ -739,7 +738,6 @@ void Dump(Stack_t* Stack, const char* File, int Line, const char* Func)
         COLOR_PRINT(YELLOW, "WARNING: Dump is in dangerous mode.\n");
         COLOR_PRINT(YELLOW, "Undefined bahavior is possible.\n\n");
     #endif
-    )
 
     COLOR_PRINT(VIOLET, "Stack data during Ctor:\n");
 
@@ -749,8 +747,6 @@ void Dump(Stack_t* Stack, const char* File, int Line, const char* Func)
         return;
     }
 
-    ON_DEBUG
-    (
     if (&Stack->Var == NULL)
     {
         COLOR_PRINT(RED, "Stack.Var = NULL\n");
@@ -785,8 +781,7 @@ void Dump(Stack_t* Stack, const char* File, int Line, const char* Func)
     }
 
     COLOR_PRINT(WHITE, "Line [%d]\n\n", Stack->Var.Line);
-    );
-
+    
     if (Stack->Data == NULL)
     {
         COLOR_PRINT(RED, "Stack.Data = NULL");
@@ -807,14 +802,14 @@ void Dump(Stack_t* Stack, const char* File, int Line, const char* Func)
     COLOR_PRINT(YELLOW, "Right Data  Canary = 0x%llx = %llu\n\n", GetRightDataCanary(Stack), GetRightDataCanary(Stack));
     )
 
-    ON_SHASH(COLOR_PRINT(BLUE, "Stack Hash = %llu\n",   Stack->StackHash);)
-    ON_DHASH(COLOR_PRINT(BLUE, "Data  Hash = %llu\n\n", Stack->DataHash);)
+    ON_SHASH (COLOR_PRINT(BLUE, "Stack Hash = %llu\n",   Stack->StackHash);)
+    ON_DHASH (COLOR_PRINT(BLUE, "Data  Hash = %llu\n\n", Stack->DataHash);)
 
     COLOR_PRINT(CYAN, "Size = %u\n", Stack->Size);
     COLOR_PRINT(CYAN, "Capacity = %u\n\n", Stack->Capacity);
 
 
-    ON_POISON(COLOR_PRINT(GREEN, "Poison = 0x%x = %d\n\n", Poison, Poison);)
+    ON_POISON (COLOR_PRINT(GREEN, "Poison = 0x%x = %d\n\n", Poison, Poison);)
 
     COLOR_PRINT(BLUE, "Data = \n{\n");
     for (size_t Data_i = 0; Data_i < Stack->Size; Data_i++)
@@ -847,6 +842,17 @@ void Dump(Stack_t* Stack, const char* File, int Line, const char* Func)
 
 //----------------------------------------------------------------------------------------------------------------------
 
+static void ErrPlaceCtor (ErrorType* Err, const char* File, int Line, const char* Func)
+{
+    Err->File = File;
+    Err->Line = Line;
+    Err->Func = Func;
+    return;
+}
+)
+
+//----------------------------------------------------------------------------------------------------------------------
+
 static void PrintPlace(const char* File, const int Line, const char* Function)
 {
     COLOR_PRINT(WHITE, "File [%s]\nLine [%d]\nFunc [%s]\n", File, Line, Function);
@@ -866,18 +872,5 @@ void AssertPrint(ErrorType Err, const char* File, int Line, const char* Func)
         printf("\n");
     }
 }
-
-//----------------------------------------------------------------------------------------------------------------------
-
-ON_DEBUG
-(
-static void ErrPlaceCtor(ErrorType* Err, const char* File, int Line, const char* Func)
-{
-    Err->File = File;
-    Err->Line = Line;
-    Err->Func = Func;
-    return;
-}
-)
 
 //----------------------------------------------------------------------------------------------------------------------

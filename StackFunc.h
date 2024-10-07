@@ -215,17 +215,16 @@ static ErrorType PopRealloc   (Stack_t* Stack, ErrorType* Err);
 #endif
 
 
-static ErrorType Verif (Stack_t* Stack, ErrorType* Error ON_DEBUG(, const char* File, int Line, const char* Func));
-
-void Dump        (Stack_t* Stack, const char* File, int Line, const char* Func);
 void AssertPrint (ErrorType Err, const char* File, int Line, const char* Func);
 
-static void PrintError   (ErrorType Error);
-static void PrintPlace   (const char* File, const int Line, const char* Function);
+static ErrorType Verif (Stack_t* Stack, ErrorType* Error ON_DEBUG(, const char* File, int Line, const char* Func));
+static void PrintError (ErrorType Error);
+static void PrintPlace (const char* File, const int Line, const char* Function);
 
 ON_DEBUG
 (
+void Dump (Stack_t* Stack, const char* File, int Line, const char* Func);
 static void ErrPlaceCtor (ErrorType* Err, const char* File, int Line, const char* Func);
-)
+)  
 
 #endif
