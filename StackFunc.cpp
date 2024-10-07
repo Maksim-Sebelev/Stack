@@ -95,7 +95,7 @@ ErrorType Push(Stack_t*  Stack, StackElem_t PushElem)
     {
         Err.Warning.PushInFullStack = 1;
         Err.IsWarning = 1;
-        RETURN_IF_ERR_OR_WARN(Stack, Err);
+        return Err;
     }
 
     Stack->Size++;
@@ -152,7 +152,7 @@ ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem)
     {
         Err.Warning.PopInEmptyStack = 1;
         Err.IsWarning = 1;
-        RETURN_IF_ERR_OR_WARN(Stack, Err);
+        return Err;
     }
 
     *PopElem = Stack->Data[Stack->Size];
