@@ -7,6 +7,27 @@
 #include "HashFunc.h"
 #include "ColorPrint.h"
 
+static const size_t MinCapacity = 8;
+static const size_t MaxCapacity = 1<<21;
+
+static const unsigned int CapPushReallocCoef = 2;
+static const unsigned int CapPopReallocCoef  = 4;
+
+ON_SCANARY
+(
+static const StackCanary_t LeftStackCanary  = 0xDEEADD;
+static const StackCanary_t RightStackCanary = 0xDEADDD;
+)
+ON_DCANARY
+(
+static const DataCanary_t LeftDataCanary  = 0xEDADEEEEEEEEEEEE;
+static const DataCanary_t RightDataCanary = 0xDEDADEEEE;
+)
+ON_POISON
+(
+static const StackElem_t Poison = 0xDEEEEEAD;
+)
+
 //----------------------------------------------------------------------------------------------------------------------
 
 ErrorType Ctor(Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char* File, int Line, const char* Func, const char* Name))
@@ -45,7 +66,7 @@ ErrorType Ctor(Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char*
     Stack->Var.Name = Name;
     )
 
-    ON_DHASH(Stack->DataHash  = Hash(Stack->Data, Stack->Capacity * sizeof(StackElem_t));)
+    ON_DHASH(Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
     ON_SHASH(Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
 
     return VERIF(Stack, Err);
@@ -57,9 +78,9 @@ ErrorType Dtor(Stack_t* Stack)
 {
     ErrorType Err = {};
     DtorFreeData(Stack, &Err);
-    Stack->Data = NULL;
+    Stack->Data     = NULL;
     Stack->Capacity = 0;
-    Stack->Size = 0;
+    Stack->Size     = 0;
     return Err;
 }
 
@@ -83,7 +104,7 @@ ErrorType Push(Stack_t*  Stack, StackElem_t PushElem)
     {
         Stack->Data[Stack->Size - 1] = PushElem;
     
-        ON_DHASH(Stack->DataHash  = Hash(Stack->Data, sizeof(StackElem_t) * Stack->Capacity);)
+        ON_DHASH(Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
         ON_SHASH(Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
 
         return VERIF(Stack, Err);
@@ -109,7 +130,7 @@ ErrorType Push(Stack_t*  Stack, StackElem_t PushElem)
     }
     )
 
-    ON_DHASH(Stack->DataHash  = Hash(Stack->Data, sizeof(StackElem_t) * Stack->Capacity);)
+    ON_DHASH(Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
     ON_SHASH(Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
     
     if (Stack->Capacity == MaxCapacity)
@@ -137,9 +158,9 @@ ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem)
     *PopElem = Stack->Data[Stack->Size];
     Stack->Size--;
 
-    ON_POISON(Stack->Data[Stack->Size] = Poison;)
-    ON_DHASH(Stack->DataHash  = Hash(Stack->Data, sizeof(StackElem_t) * Stack->Capacity);)
-    ON_SHASH(Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
+    ON_POISON (Stack->Data[Stack->Size] = Poison;)
+    ON_DHASH  (Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
+    ON_SHASH  (Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
 
     if (Stack->Size * CapPopReallocCoef > Stack->Capacity)
     {
@@ -154,9 +175,9 @@ ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem)
         return Err;
     }
 
-    ON_DCANARY(AssignRightDataCanary(Stack);)
-    ON_DHASH(Stack->DataHash  = Hash(Stack->Data, sizeof(StackElem_t) * Stack->Capacity);)
-    ON_SHASH(Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
+    ON_DCANARY (AssignRightDataCanary(Stack);)
+    ON_DHASH   (Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
+    ON_SHASH   (Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
 
     return VERIF(Stack, Err);
 }
@@ -187,9 +208,9 @@ static uint64_t CalcStackHashWithFixedDefaultStackHash(Stack_t* Stack)
 {
     uint64_t StackHashCopy = Stack->StackHash;
     Stack->StackHash       = 538176576;
-    uint64_t RealStackHash = Hash(Stack, sizeof(*Stack));
+    uint64_t NewStackHash = Hash(Stack, 1, sizeof(*Stack));
     Stack->StackHash       = StackHashCopy;
-    return RealStackHash;
+    return NewStackHash;
 }
 );
 
@@ -517,7 +538,7 @@ static ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_DEBUG(, const char* F
     
     ON_DHASH
     (
-    if (Hash(Stack->Data, sizeof(StackElem_t) * Stack->Capacity) != Stack->DataHash)
+    if (Hash(Stack->Data, sizeof(StackElem_t), Stack->Capacity) != Stack->DataHash)
     {
         Error->FatalError.DataHashChanged = 1;
         Error->IsFatalError = 1;

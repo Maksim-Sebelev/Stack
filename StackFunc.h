@@ -59,8 +59,8 @@
 
 typedef int StackElem_t;
 
-ON_SCANARY(typedef uint64_t StackCanary_t;)
-ON_DCANARY(typedef uint64_t DataCanary_t;)
+ON_SCANARY (typedef uint64_t StackCanary_t;)
+ON_DCANARY (typedef uint64_t DataCanary_t ;)
 
 ON_DEBUG
 (
@@ -147,29 +147,6 @@ struct ErrorType
     const char* Func;
 };
 
-static const size_t MinCapacity = 8;
-static const size_t MaxCapacity = 1<<21;
-
-ON_POISON
-(
-static const StackElem_t Poison = 0xDEEEEEAD;
-)
-
-ON_SCANARY
-(
-static const StackCanary_t LeftStackCanary  = 0xDEEADD;
-static const StackCanary_t RightStackCanary = 0xDEADDD;
-)
-
-ON_DCANARY
-(
-static const DataCanary_t LeftDataCanary  = 0xEDADEEEEEEEEEEEE;
-static const DataCanary_t RightDataCanary = 0xDEDADEEEE;
-)
-
-static const unsigned int CapPushReallocCoef = 2;
-static const unsigned int CapPopReallocCoef  = 4;
-
 //operation with stack
 
 ErrorType Ctor       (Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char* File, int Line, const char* Func, const char* Name));
@@ -184,13 +161,14 @@ ON_SHASH
 (
 static uint64_t CalcStackHashWithFixedDefaultStackHash (Stack_t* Stack);
 )
+
 ON_DCANARY
 (
 static DataCanary_t GetLeftDataCanary     (Stack_t* Stack);
 static DataCanary_t GetRightDataCanary    (Stack_t* Stack);
 static void         AssignLeftDataCanary  (Stack_t* Stack);
 static void         AssignRightDataCanary (Stack_t* Stack);
-);
+)
 
 static size_t GetCapacityDivisibleByDataCanarySize (size_t Capacity); 
 static size_t GetNewCtorCapacity                   (size_t StackDataSize);
@@ -240,7 +218,7 @@ static ErrorType PopRealloc   (Stack_t* Stack, ErrorType* Err);
 static ErrorType Verif (Stack_t* Stack, ErrorType* Error ON_DEBUG(, const char* File, int Line, const char* Func));
 
 void        Dump         (Stack_t* Stack, const char* File, int Line, const char* Func);
-void AssertPrint         (ErrorType Err, const char* File, int Line, const char* Func);
+void        AssertPrint  (ErrorType Err, const char* File, int Line, const char* Func);
 static void PrintError   (ErrorType Error);
 static void PrintPlace   (const char* File, const int Line, const char* Function);
 ON_DEBUG
