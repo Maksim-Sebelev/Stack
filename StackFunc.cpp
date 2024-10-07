@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
@@ -34,22 +33,21 @@ ErrorType Ctor(Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char*
 {
     ErrorType Err = {};
 
+    Stack->Size = 0;
+
     Stack->Capacity = GetNewCtorCapacity(StackDataSize);
     CtorCalloc(Stack, &Err, StackDataSize);
 
-    Stack->Size = 0;
     ON_SCANARY
     (
     Stack->LeftStackCanary  = LeftStackCanary;
     Stack->RightStackCanary = RightStackCanary;
     )
-
     ON_DCANARY
     (
-    AssignLeftDataCanary  (Stack);
-    AssignRightDataCanary (Stack);
+    AssignLeftDataCanary (Stack);
+    AssignRightDataCanary(Stack);
     )
-
     ON_POISON
     (
     for (size_t Data_i = 0; Data_i < Stack->Capacity; Data_i++)
@@ -57,7 +55,6 @@ ErrorType Ctor(Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char*
         Stack->Data[Data_i] = Poison;
     }
     )
-
     ON_DEBUG
     (
     Stack->Var.File = File;
@@ -65,7 +62,6 @@ ErrorType Ctor(Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char*
     Stack->Var.Func = Func;
     Stack->Var.Name = Name;
     )
-
     ON_DHASH(Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
     ON_SHASH(Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
 
@@ -158,9 +154,9 @@ ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem)
     *PopElem = Stack->Data[Stack->Size];
     Stack->Size--;
 
-    ON_POISON (Stack->Data[Stack->Size] = Poison;)
-    ON_DHASH  (Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
-    ON_SHASH  (Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
+    ON_POISON(Stack->Data[Stack->Size] = Poison;)
+    ON_DHASH(Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
+    ON_SHASH(Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
 
     if (Stack->Size * CapPopReallocCoef > Stack->Capacity)
     {
@@ -175,9 +171,9 @@ ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem)
         return Err;
     }
 
-    ON_DCANARY (AssignRightDataCanary(Stack);)
-    ON_DHASH   (Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
-    ON_SHASH   (Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
+    ON_DCANARY(AssignRightDataCanary(Stack);)
+    ON_DHASH(Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
+    ON_SHASH(Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
 
     return VERIF(Stack, Err);
 }
@@ -208,7 +204,7 @@ static uint64_t CalcStackHashWithFixedDefaultStackHash(Stack_t* Stack)
 {
     uint64_t StackHashCopy = Stack->StackHash;
     Stack->StackHash       = 538176576;
-    uint64_t NewStackHash = Hash(Stack, 1, sizeof(*Stack));
+    uint64_t NewStackHash  = Hash(Stack, 1, sizeof(*Stack));
     Stack->StackHash       = StackHashCopy;
     return NewStackHash;
 }
