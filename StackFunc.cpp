@@ -62,7 +62,7 @@ ErrorType Ctor(Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char*
     Stack->Var.Func = Func;
     Stack->Var.Name = Name;
     )
-    ON_DHASH(Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
+    ON_DHASH(Stack->DataHash  = CalcDataHash(Stack);)
     ON_SHASH(Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
 
     return VERIF(Stack, Err);
@@ -100,7 +100,7 @@ ErrorType Push(Stack_t*  Stack, StackElem_t PushElem)
     {
         Stack->Data[Stack->Size - 1] = PushElem;
     
-        ON_DHASH(Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
+        ON_DHASH(Stack->DataHash  = CalcDataHash(Stack);)
         ON_SHASH(Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
 
         return VERIF(Stack, Err);
@@ -126,7 +126,7 @@ ErrorType Push(Stack_t*  Stack, StackElem_t PushElem)
     }
     )
 
-    ON_DHASH(Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
+    ON_DHASH(Stack->DataHash  = CalcDataHash(Stack);)
     ON_SHASH(Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
     
     if (Stack->Capacity == MaxCapacity)
@@ -142,7 +142,6 @@ ErrorType Push(Stack_t*  Stack, StackElem_t PushElem)
 ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem)
 {
     ErrorType Err = {};
-    RETURN_IF_ERR_OR_WARN(Stack, Err);
 
     if (Stack->Size == 0)
     {
@@ -155,7 +154,7 @@ ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem)
     Stack->Size--;
 
     ON_POISON(Stack->Data[Stack->Size] = Poison;)
-    ON_DHASH(Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
+    ON_DHASH(Stack->DataHash  = CalcDataHash(Stack);)
     ON_SHASH(Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
 
     if (Stack->Size * CapPopReallocCoef > Stack->Capacity)
@@ -172,7 +171,7 @@ ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem)
     }
 
     ON_DCANARY(AssignRightDataCanary(Stack);)
-    ON_DHASH(Stack->DataHash  = Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));)
+    ON_DHASH(Stack->DataHash  = CalcDataHash(Stack);)
     ON_SHASH(Stack->StackHash = CalcStackHashWithFixedDefaultStackHash(Stack);)
 
     return VERIF(Stack, Err);
@@ -204,12 +203,20 @@ static uint64_t CalcStackHashWithFixedDefaultStackHash(Stack_t* Stack)
 {
     uint64_t StackHashCopy = Stack->StackHash;
     Stack->StackHash       = 538176576;
-    uint64_t NewStackHash  = Hash(Stack, 1, sizeof(*Stack));
+    uint64_t NewStackHash  = Hash(Stack, 1, sizeof(Stack_t));
     Stack->StackHash       = StackHashCopy;
     return NewStackHash;
 }
 );
 
+
+ON_DHASH
+(
+static uint64_t CalcDataHash(Stack_t* Stack)
+{
+    return Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));
+}
+)
 //----------------------------------------------------------------------------------------------------------------------
 
 ON_DCANARY
@@ -256,7 +263,8 @@ static size_t GetNewCtorCapacity(size_t StackDataSize)
 static size_t GetNewPushCapacity(Stack_t* Stack)
 {
     size_t NewCapacity = (Stack->Capacity * CapPushReallocCoef);
-    return GetCapacityDivisibleByDataCanarySize(NewCapacity < MaxCapacity ? NewCapacity : MaxCapacity);
+    size_t temp = NewCapacity < MaxCapacity ? NewCapacity : MaxCapacity;
+    return GetCapacityDivisibleByDataCanarySize(temp);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -533,7 +541,7 @@ static ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_DEBUG(, const char* F
     
     ON_DHASH
     (
-    if (Hash(Stack->Data, sizeof(StackElem_t), Stack->Capacity) != Stack->DataHash)
+    if (CalcDataHash(Stack) != Stack->DataHash)
     {
         Error->FatalError.DataHashChanged = 1;
         Error->IsFatalError = 1;
@@ -714,8 +722,6 @@ ON_DEBUG
 void Dump(Stack_t* Stack, const char* File, int Line, const char* Func)
 {   
     COLOR_PRINT(GREEN, "\nDump BEGIN\n\n");
-    COLOR_PRINT(VIOLET, "Where Dump made:\n");
-    PrintPlace(File, Line, Func);
 
     #define DANG_DUMP
 
@@ -734,6 +740,9 @@ void Dump(Stack_t* Stack, const char* File, int Line, const char* Func)
         COLOR_PRINT(YELLOW, "WARNING: Dump is in dangerous mode.\n");
         COLOR_PRINT(YELLOW, "Undefined bahavior is possible.\n\n");
     #endif
+
+    COLOR_PRINT(VIOLET, "Where Dump made:\n");
+    PrintPlace(File, Line, Func);
 
     COLOR_PRINT(VIOLET, "Stack data during Ctor:\n");
 

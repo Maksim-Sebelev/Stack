@@ -161,6 +161,10 @@ ON_SHASH
 (
 static uint64_t CalcStackHashWithFixedDefaultStackHash (Stack_t* Stack);
 )
+ON_DHASH
+(
+static uint64_t CalcDataHash(Stack_t* Stack);
+)
 
 ON_DCANARY
 (
@@ -218,6 +222,7 @@ static ErrorType PopRealloc   (Stack_t* Stack, ErrorType* Err);
 void AssertPrint (ErrorType Err, const char* File, int Line, const char* Func);
 
 static ErrorType Verif (Stack_t* Stack, ErrorType* Error ON_DEBUG(, const char* File, int Line, const char* Func));
+
 static void PrintError (ErrorType Error);
 static void PrintPlace (const char* File, const int Line, const char* Function);
 
