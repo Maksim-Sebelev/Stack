@@ -6,7 +6,7 @@
 #include "HashFunc.h"
 #include "ColorPrint.h"
 
-static const size_t MinCapacity = 8;
+static const size_t MinCapacity = 1<<3;
 static const size_t MaxCapacity = 1<<21;
 
 static const unsigned int CapPushReallocCoef = 2;
@@ -19,8 +19,8 @@ static const StackCanary_t RightStackCanary = 0xDEADDEDDEADED;
 )
 ON_DCANARY
 (
-static const DataCanary_t LeftDataCanary  = 0xEDADEDAEDADEDA;
-static const DataCanary_t RightDataCanary = 0xDEDDEADDEDDEAD;
+static const DataCanary_t LeftDataCanary    = 0xEDADEDAEDADEDA;
+static const DataCanary_t RightDataCanary   = 0xDEDDEADDEDDEAD;
 )
 ON_POISON
 (
@@ -142,6 +142,7 @@ ErrorType Push(Stack_t*  Stack, StackElem_t PushElem)
 ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem)
 {
     ErrorType Err = {};
+    RETURN_IF_ERR_OR_WARN(Stack, Err);
 
     if (Stack->Size == 0)
     {
