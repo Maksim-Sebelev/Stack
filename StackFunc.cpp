@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <string.h>
-#include <inttypes.h>
 #include <malloc.h>
 #include "StackFunc.h"
 #include "HashFunc.h"
@@ -22,11 +20,49 @@ ON_DCANARY
 static const DataCanary_t LeftDataCanary    = 0xEDADEDAEDADEDA;
 static const DataCanary_t RightDataCanary   = 0xDEDDEADDEDDEAD;
 )
+ON_SHASH
+(
+static const uint64_t DefaultStackHash = 538176576;
+)
 ON_POISON
 (
 static const StackElem_t Poison = 0xDEEEEEAD;
 )
 
+static size_t GetCapacityDivisibleByDataCanarySize (size_t Capacity); 
+static size_t GetNewCtorCapacity                   (size_t StackDataSize);
+static size_t GetNewPushCapacity                   (Stack_t* Stack);
+static size_t GetNewPopCapacity                    (Stack_t* Stack);
+
+static ErrorType CtorCalloc   (Stack_t* Stack, ErrorType* Err, size_t StackDataSize);
+static ErrorType DtorFreeData (Stack_t* Stack, ErrorType* Err);
+static ErrorType PushRealloc  (Stack_t* Stack, ErrorType* Err);
+static ErrorType PopRealloc   (Stack_t* Stack, ErrorType* Err);
+
+ON_DCANARY
+(
+static DataCanary_t GetLeftDataCanary     (Stack_t* Stack);
+static DataCanary_t GetRightDataCanary    (Stack_t* Stack);
+static void         AssignLeftDataCanary  (Stack_t* Stack);
+static void         AssignRightDataCanary (Stack_t* Stack);
+)
+
+ON_DHASH
+(
+static uint64_t CalcDataHash(Stack_t* Stack);
+)
+ON_SHASH
+(
+static uint64_t CalcStackHashWithFixedDefaultStackHash (Stack_t* Stack);
+)
+
+static ErrorType Verif       (Stack_t* Stack, ErrorType* Error ON_DEBUG(, const char* File, int Line, const char* Func));
+static void      PrintError  (ErrorType Error);
+static void      PrintPlace  (const char* File, const int Line, const char* Function);
+ON_DEBUG
+(
+static void      ErrPlaceCtor (ErrorType* Err, const char* File, int Line, const char* Func);
+)
 //----------------------------------------------------------------------------------------------------------------------
 
 ErrorType Ctor(Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char* File, int Line, const char* Func, const char* Name))
@@ -202,14 +238,15 @@ ON_SHASH
 (
 static uint64_t CalcStackHashWithFixedDefaultStackHash(Stack_t* Stack)
 {
-    uint64_t StackHashCopy = Stack->StackHash;
-    Stack->StackHash       = 538176576;
-    uint64_t NewStackHash  = Hash(Stack, 1, sizeof(Stack_t));
-    Stack->StackHash       = StackHashCopy;
+    const uint64_t StackHashCopy = Stack->StackHash;
+    Stack->StackHash             = DefaultStackHash;
+    uint64_t NewStackHash        = Hash(Stack, 1, sizeof(Stack_t));
+    Stack->StackHash             = StackHashCopy;
     return NewStackHash;
 }
-);
+)
 
+//----------------------------------------------------------------------------------------------------------------------
 
 ON_DHASH
 (
@@ -218,6 +255,7 @@ static uint64_t CalcDataHash(Stack_t* Stack)
     return Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));
 }
 )
+
 //----------------------------------------------------------------------------------------------------------------------
 
 ON_DCANARY
@@ -225,7 +263,6 @@ ON_DCANARY
 static DataCanary_t GetLeftDataCanary(Stack_t* Stack)
 {
     return *(DataCanary_t*)((char*)Stack->Data - 1 * sizeof(DataCanary_t));
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -234,7 +271,7 @@ static DataCanary_t GetRightDataCanary(Stack_t* Stack)
 {
     return *(DataCanary_t*)((char*)Stack->Data + Stack->Capacity * sizeof(StackElem_t));
 }
-);
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -250,7 +287,7 @@ static void AssignRightDataCanary(Stack_t* Stack)
     *(DataCanary_t*)((char*)Stack->Data + Stack->Capacity * sizeof(StackElem_t)) = RightDataCanary;
     return;
 }
-
+)
 //----------------------------------------------------------------------------------------------------------------------
 
 static size_t GetNewCtorCapacity(size_t StackDataSize)

@@ -6,12 +6,14 @@
 #include <stdlib.h>
 #include "ColorPrint.h"
 
-#define DEBUG
-#define STACK_CANARY
+//--------------------------------------------------------------------------------------------------------------------------------
+#define DEBUG    
+#define STACK_CANARY     
 #define DATA_CANARY
 #define STACK_HASH
 #define DATA_HASH
 #define POISON
+//--------------------------------------------------------------------------------------------------------------------------------
 
 #ifdef DEBUG
     #define ON_DEBUG(...) __VA_ARGS__
@@ -59,8 +61,8 @@
 
 typedef int StackElem_t;
 
-ON_SCANARY (typedef uint64_t StackCanary_t;)
-ON_DCANARY (typedef uint64_t DataCanary_t ;)
+ON_SCANARY(typedef uint64_t StackCanary_t;)
+ON_DCANARY(typedef uint64_t DataCanary_t ;)
 
 ON_DEBUG
 (
@@ -155,42 +157,17 @@ ErrorType PrintStack (Stack_t* Stack);
 ErrorType Push       (Stack_t* Stack, StackElem_t PushElem);
 ErrorType Pop        (Stack_t* Stack, StackElem_t* PopElem);
 
-//helper func for stack
-
-ON_SHASH
-(
-static uint64_t CalcStackHashWithFixedDefaultStackHash (Stack_t* Stack);
-)
-ON_DHASH
-(
-static uint64_t CalcDataHash(Stack_t* Stack);
-)
-
-ON_DCANARY
-(
-static DataCanary_t GetLeftDataCanary     (Stack_t* Stack);
-static DataCanary_t GetRightDataCanary    (Stack_t* Stack);
-static void         AssignLeftDataCanary  (Stack_t* Stack);
-static void         AssignRightDataCanary (Stack_t* Stack);
-)
-
-static size_t GetCapacityDivisibleByDataCanarySize (size_t Capacity); 
-static size_t GetNewCtorCapacity                   (size_t StackDataSize);
-static size_t GetNewPushCapacity                   (Stack_t* Stack);
-static size_t GetNewPopCapacity                    (Stack_t* Stack);
-
-static ErrorType CtorCalloc   (Stack_t* Stack, ErrorType* Err, size_t StackDataSize);
-static ErrorType DtorFreeData (Stack_t* Stack, ErrorType* Err);
-static ErrorType PushRealloc  (Stack_t* Stack, ErrorType* Err);
-static ErrorType PopRealloc   (Stack_t* Stack, ErrorType* Err);
-
 //--------------------------------------------------------------------------------------------------------------------------
 
 //stack error func
 
-#define VERIF(StackPtr, Err) Verif (StackPtr, &Err ON_DEBUG(, __FILE__, __LINE__, __func__))
+#define VERIF(StackPtr, Err) Verif(StackPtr, &Err ON_DEBUG(, __FILE__, __LINE__, __func__))
 
-#define DUMP(Stack) Dump (Stack, __FILE__, __LINE__, __func__)
+ON_DEBUG
+(
+void Dump(Stack_t* Stack, const char* File, int Line, const char* Func);
+#define DUMP(Stack) Dump(Stack, __FILE__, __LINE__, __func__)
+)
 
 #define RETURN_IF_ERR_OR_WARN(StackPtr, Err) do                      \
 {                                                                     \
@@ -201,6 +178,7 @@ static ErrorType PopRealloc   (Stack_t* Stack, ErrorType* Err);
         return ErrCopy;                                                    \
     }                                                                       \
 } while (0)                                                                  \
+
 
 #ifdef DEBUG
     #define ASSERT(Err) do                                 \
@@ -218,18 +196,7 @@ static ErrorType PopRealloc   (Stack_t* Stack, ErrorType* Err);
     #define ASSERT(Err) AssertPrint(Err, __FILE__, __LINE__, __func__)
 #endif
 
-
 void AssertPrint (ErrorType Err, const char* File, int Line, const char* Func);
 
-static ErrorType Verif (Stack_t* Stack, ErrorType* Error ON_DEBUG(, const char* File, int Line, const char* Func));
-
-static void PrintError (ErrorType Error);
-static void PrintPlace (const char* File, const int Line, const char* Function);
-
-ON_DEBUG
-(
-void Dump (Stack_t* Stack, const char* File, int Line, const char* Func);
-static void ErrPlaceCtor (ErrorType* Err, const char* File, int Line, const char* Func);
-)  
 
 #endif
