@@ -62,7 +62,6 @@
 typedef int StackElem_t;
 
 ON_SCANARY(typedef uint64_t StackCanary_t;)
-ON_DCANARY(typedef uint64_t DataCanary_t ;)
 
 ON_DEBUG
 (
@@ -91,7 +90,7 @@ struct Stack_t
 struct Warnings
 {
     unsigned char PopInEmptyStack             : 1;
-    unsigned char ToBigCapacity               : 1;
+    unsigned char TooBigCapacity               : 1;
     unsigned char PushInFullStack             : 1;
 };
 
@@ -151,11 +150,12 @@ struct ErrorType
 
 //operation with stack
 
-ErrorType Ctor       (Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char* File, int Line, const char* Func, const char* Name));
-ErrorType Dtor       (Stack_t* Stack);
-ErrorType PrintStack (Stack_t* Stack);
-ErrorType Push       (Stack_t* Stack, StackElem_t PushElem);
-ErrorType Pop        (Stack_t* Stack, StackElem_t* PopElem);
+ErrorType Ctor               (Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char* File, int Line, const char* Func, const char* Name));
+ErrorType Dtor               (Stack_t* Stack);
+ErrorType PrintStack         (Stack_t* Stack);
+ErrorType PrintLastStackElem (Stack_t* Stack);
+ErrorType Push               (Stack_t* Stack, StackElem_t PushElem);
+ErrorType Pop                (Stack_t* Stack, StackElem_t* PopElem);
 
 //--------------------------------------------------------------------------------------------------------------------------
 
@@ -165,7 +165,7 @@ ErrorType Pop        (Stack_t* Stack, StackElem_t* PopElem);
 
 ON_DEBUG
 (
-void Dump(Stack_t* Stack, const char* File, int Line, const char* Func);
+void Dump(const Stack_t* Stack, const char* File, int Line, const char* Func);
 #define DUMP(Stack) Dump(Stack, __FILE__, __LINE__, __func__)
 )
 
