@@ -1,5 +1,5 @@
-#ifndef STACK_FUNC_H
-#define STACK_FUNC_H
+#ifndef STACK_H
+#define STACK_H
 
 #include <stdio.h>
 #include <stdint.h>
@@ -90,7 +90,7 @@ struct Stack_t
 struct Warnings
 {
     unsigned char PopInEmptyStack             : 1;
-    unsigned char TooBigCapacity               : 1;
+    unsigned char TooBigCapacity              : 1;
     unsigned char PushInFullStack             : 1;
 };
 
@@ -141,11 +141,11 @@ struct ErrorType
 {
     unsigned int IsFatalError : 1;
     unsigned int IsWarning    : 1;
-    Warnings Warning;
-    FatalErrors FatalError;
-    const char* File;
-    int Line;
-    const char* Func;
+    Warnings     Warning;
+    FatalErrors  FatalError;
+    const char*  File;
+    int          Line;
+    const char*  Func;
 };
 
 //operation with stack

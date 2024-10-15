@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <malloc.h>
-#include "StackFunc.h"
+#include "Stack.h"
 #include "HashFunc.h"
 #include "ColorPrint.h"
 
-static const size_t MinCapacity = 1<<1;
-static const size_t MaxCapacity = 1<<3;
+static const size_t MinCapacity = 1<<3;
+static const size_t MaxCapacity = 1<<21;
 
 static const unsigned int CapPushReallocCoef = 2;
 static const unsigned int CapPopReallocCoef  = 4;
@@ -46,12 +46,12 @@ static ErrorType PopRealloc   (Stack_t* Stack, ErrorType* Err);
 
 ON_DCANARY
 (
-static DataCanary_t GetLeftDataCanary  (const Stack_t* Stack);
-static DataCanary_t GetRightDataCanary (const Stack_t* Stack);
-static void         SetLeftDataCanary  (Stack_t* Stack);
-static void         SetRightDataCanary (Stack_t* Stack);
-static ErrorType MoveDataToLeftCanary(Stack_t* Stack, ErrorType* Err);
-static ErrorType MoveDataToFirstElem(Stack_t* Stack, ErrorType* Err);
+static DataCanary_t GetLeftDataCanary    (const Stack_t* Stack);
+static DataCanary_t GetRightDataCanary   (const Stack_t* Stack);
+static void         SetLeftDataCanary    (Stack_t* Stack);
+static void         SetRightDataCanary   (Stack_t* Stack);
+static ErrorType    MoveDataToLeftCanary (Stack_t* Stack, ErrorType* Err);
+static ErrorType    MoveDataToFirstElem  (Stack_t* Stack, ErrorType* Err);
 )
 
 ON_DHASH
@@ -114,7 +114,7 @@ ErrorType Ctor(Stack_t* Stack, const size_t StackDataSize ON_DEBUG(, const char*
 
 ErrorType Dtor(Stack_t* Stack)
 {
-    ErrorType Err = {};
+    ErrorType Err   = {};
     DtorFreeData(Stack, &Err);
     Stack->Data     = NULL;
     Stack->Capacity = 0;
@@ -193,8 +193,9 @@ ErrorType Pop(Stack_t* Stack, StackElem_t* PopElem)
         return VERIF(Stack, Err);
     }
 
-    *PopElem = Stack->Data[Stack->Size];
     Stack->Size--;
+
+    *PopElem = Stack->Data[Stack->Size];
 
     ON_POISON(Stack->Data[Stack->Size] = Poison;)
     ON_DHASH(Stack->DataHash  = CalcDataHash(Stack);)
