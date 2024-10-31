@@ -1,8 +1,8 @@
 CC = g++
 CFLAGS = -c
-FILES_CPP = main.cpp StackFunc.cpp HashFunc.cpp
-OBJECTS = $(FILES_CPP:.cpp=.o)
-HEADERS = $(FILES_CPP:.cpp=.h)
+SOURCES = main.cpp StackFunc.cpp HashFunc.cpp
+OBJECTS = $(SOURCES:.cpp=.o)
+HEADERS = $(SOURCES:.cpp=.h)
 
 all: $(SOURCES) main
 
