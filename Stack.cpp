@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include "Stack.h"
-#include "HashFunc.h"
+#include "Hash.h"
 #include "ColorPrint.h"
 
 static const size_t MinCapacity = 1<<3;
