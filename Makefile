@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -c
+CFLAGS = -c -Wall
 SOURCES = main.cpp Stack.cpp Hash.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 HEADERS = $(SOURCES:.cpp=.h)

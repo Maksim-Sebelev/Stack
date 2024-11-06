@@ -875,20 +875,20 @@ void Dump(const Stack_t* Stack, const char* File, int Line, const char* Func)
 
     ON_SCANARY
     (
-    COLOR_PRINT(YELLOW, "Left  Stack Canary = 0x%llx = %llu\n",   Stack->LeftStackCanary,    Stack->LeftStackCanary);
-    COLOR_PRINT(YELLOW, "Right Stack Canary = 0x%llx = %llu\n\n", Stack->RightStackCanary,   Stack->RightStackCanary);
+    COLOR_PRINT(YELLOW, "Left  Stack Canary = 0x%lx = %lu\n",   Stack->LeftStackCanary,    Stack->LeftStackCanary);
+    COLOR_PRINT(YELLOW, "Right Stack Canary = 0x%lx = %lu\n\n", Stack->RightStackCanary,   Stack->RightStackCanary);
     )
     ON_DCANARY
     (
-    COLOR_PRINT(YELLOW, "Left  Data  Canary = 0x%llx = %llu\n",   GetLeftDataCanary(Stack),  GetLeftDataCanary(Stack));
-    COLOR_PRINT(YELLOW, "Right Data  Canary = 0x%llx = %llu\n\n", GetRightDataCanary(Stack), GetRightDataCanary(Stack));
+    COLOR_PRINT(YELLOW, "Left  Data  Canary = 0x%lx = %lu\n",   GetLeftDataCanary(Stack),  GetLeftDataCanary(Stack));
+    COLOR_PRINT(YELLOW, "Right Data  Canary = 0x%lx = %lu\n\n", GetRightDataCanary(Stack), GetRightDataCanary(Stack));
     )
 
-    ON_SHASH (COLOR_PRINT(BLUE, "Stack Hash = %llu\n",   Stack->StackHash);)
-    ON_DHASH (COLOR_PRINT(BLUE, "Data  Hash = %llu\n\n", Stack->DataHash);)
+    ON_SHASH (COLOR_PRINT(BLUE, "Stack Hash = %lu\n",   Stack->StackHash);)
+    ON_DHASH (COLOR_PRINT(BLUE, "Data  Hash = %lu\n\n", Stack->DataHash);)
 
-    COLOR_PRINT(CYAN, "Size = %u\n", Stack->Size);
-    COLOR_PRINT(CYAN, "Capacity = %u\n\n", Stack->Capacity);
+    COLOR_PRINT(CYAN, "Size = %lu\n", Stack->Size);
+    COLOR_PRINT(CYAN, "Capacity = %lu\n\n", Stack->Capacity);
 
 
     ON_POISON (COLOR_PRINT(GREEN, "Poison = 0x%x = %d\n\n", Poison, Poison);)
@@ -896,12 +896,12 @@ void Dump(const Stack_t* Stack, const char* File, int Line, const char* Func)
     COLOR_PRINT(BLUE, "Data = \n{\n");
     for (size_t Data_i = 0; Data_i < Stack->Size; Data_i++)
     {
-        COLOR_PRINT(BLUE, "*[%2u] %d\n", Data_i, Stack->Data[Data_i]);
+        COLOR_PRINT(BLUE, "*[%2lu] %d\n", Data_i, Stack->Data[Data_i]);
     }
 
     for (size_t Data_i = Stack->Size; Data_i < Stack->Capacity; Data_i++)
     {
-        COLOR_PRINT(CYAN, " [%2u] 0x%x\n", Data_i, Stack->Data[Data_i]);   
+        COLOR_PRINT(CYAN, " [%2lu] 0x%x\n", Data_i, Stack->Data[Data_i]);   
     }
     COLOR_PRINT(BLUE, "};\n\n");
 
@@ -909,12 +909,12 @@ void Dump(const Stack_t* Stack, const char* File, int Line, const char* Func)
     COLOR_PRINT(VIOLET, "Data ptrs = \n{\n");
     for (size_t Data_i = 0; Data_i < Stack->Size; Data_i++)
     {
-        COLOR_PRINT(VIOLET, "*[%2u] 0x%p\n", Data_i, &Stack->Data[Data_i]);
+        COLOR_PRINT(VIOLET, "*[%2lu] 0x%p\n", Data_i, &Stack->Data[Data_i]);
     }
 
     for (size_t Data_i = Stack->Size; Data_i < Stack->Capacity; Data_i++)
     {
-        COLOR_PRINT(CYAN, " [%2u] 0x%p\n", Data_i, &Stack->Data[Data_i]);   
+        COLOR_PRINT(CYAN, " [%2lu] 0x%p\n", Data_i, &Stack->Data[Data_i]);   
     }
     COLOR_PRINT(VIOLET, "};\n");
 
