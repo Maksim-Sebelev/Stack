@@ -1,16 +1,18 @@
 #include "Stack.hpp"
 
-
 int main()
 {
-    Stack_t Stack = {};
-    StackElem_t PopELem = 0;
+    Stack_t Stack        = {};
 
-    STACK_ASSERT(StackCtor(&Stack, 8));          //stack initialization
-    STACK_ASSERT(StackPush(&Stack, 10));         //put element in stack end
-    STACK_ASSERT(StackPop(&Stack, &PopELem));    //remove last element in stack
-    STACK_ASSERT(PrintStack(&Stack));            //show all element in stack
-    STACK_ASSERT(StackDtor(&Stack));             //free memory that stack used
+    size_t StackCapacity = 128;
+    StackElem_t PushElem = 8; 
+    StackElem_t PopELem  = 0;
+
+    STACK_ASSERT(StackCtor  (&Stack, StackCapacity));     //stack initialization
+    STACK_ASSERT(StackPush  (&Stack, PushElem));         //put element in stack end
+    STACK_ASSERT(StackPop   (&Stack, &PopELem));        //remove last element in stack
+    STACK_ASSERT(PrintStack (&Stack));                 //show all element in stack
+    STACK_ASSERT(StackDtor  (&Stack));                //free memory that stack used
 
     return EXIT_SUCCESS;
 }
