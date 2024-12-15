@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <malloc.h>
 #include <assert.h>
 #include "Hash.hpp"

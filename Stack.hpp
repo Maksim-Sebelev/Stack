@@ -142,7 +142,7 @@ struct FatalErrors
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-struct ErrorType
+struct StackErrorType
 {
     unsigned int IsFatalError : 1;
     unsigned int IsWarning    : 1;
@@ -155,12 +155,12 @@ struct ErrorType
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ErrorType StackCtor               (Stack_t* stack, size_t StackDataSize);
-ErrorType StackDtor               (Stack_t* stack);
-ErrorType PrintStack              (Stack_t* stack);
-ErrorType PrintLastStackElem      (Stack_t* stack);
-ErrorType StackPush               (Stack_t* stack, StackElem_t PushElem);
-ErrorType StackPop                (Stack_t* stack, StackElem_t* PopElem);
+StackErrorType StackCtor               (Stack_t* stack, size_t StackDataSize);
+StackErrorType StackDtor               (Stack_t* stack);
+StackErrorType PrintStack              (Stack_t* stack);
+StackErrorType PrintLastStackElem      (Stack_t* stack);
+StackErrorType StackPush               (Stack_t* stack, StackElem_t PushElem);
+StackErrorType StackPop                (Stack_t* stack, StackElem_t* PopElem);
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -173,14 +173,14 @@ void Dump(const Stack_t* stack, const char* file, int line, const char* func);
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void AssertPrint (ErrorType Err, const char* file, int line, const char* func);
+void AssertPrint (StackErrorType Err, const char* file, int line, const char* func);
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #ifdef STACK_DEBUG
     #define STACK_ASSERT(Err) do                             \
     {                                                         \
-        ErrorType ErrCopy = Err;                               \
+        StackErrorType ErrCopy = Err;                               \
         if (ErrCopy.IsFatalError || ErrCopy.IsWarning)          \
         {                                                        \
             AssertPrint(ErrCopy, __FILE__, __LINE__, __func__);   \

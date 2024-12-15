@@ -40,10 +40,10 @@ static size_t GetNewCtorCapacity  (size_t StackDataSize);
 static size_t GetNewPushCapacity  (const Stack_t* stack);
 static size_t GetNewPopCapacity   (const Stack_t* stack);
 
-static ErrorType CtorCalloc   (Stack_t* stack, size_t StackDataSize);
-static ErrorType DtorFreeData (Stack_t* stack);
-static ErrorType PushRealloc  (Stack_t* stack);
-static ErrorType PopRealloc   (Stack_t* stack);
+static StackErrorType CtorCalloc   (Stack_t* stack, size_t StackDataSize);
+static StackErrorType DtorFreeData (Stack_t* stack);
+static StackErrorType PushRealloc  (Stack_t* stack);
+static StackErrorType PopRealloc   (Stack_t* stack);
 
 ON_STACK_DATA_CANARY
 (
@@ -51,8 +51,8 @@ static DataCanary_t GetLeftDataCanary    (const Stack_t* stack);
 static DataCanary_t GetRightDataCanary   (const Stack_t* stack);
 static void         SetLeftDataCanary    (Stack_t* stack);
 static void         SetRightDataCanary   (Stack_t* stack);
-static ErrorType    MoveDataToLeftCanary (Stack_t* stack);
-static ErrorType    MoveDataToFirstElem  (Stack_t* stack);
+static StackErrorType    MoveDataToLeftCanary (Stack_t* stack);
+static StackErrorType    MoveDataToFirstElem  (Stack_t* stack);
 )
 
 ON_STACK_DATA_HASH
@@ -64,12 +64,12 @@ ON_STACK_HASH
 static uint64_t CalcStackHash (Stack_t* stack);
 )
 
-static ErrorType Verif       (Stack_t* stack, ErrorType* Error ON_STACK_DEBUG(, const char* file, int line, const char* func));
-static void      PrintError  (ErrorType Error);
+static StackErrorType Verif       (Stack_t* stack, StackErrorType* Error ON_STACK_DEBUG(, const char* file, int line, const char* func));
+static void      PrintError  (StackErrorType Error);
 static void      PrintPlace  (const char* file, int line, const char* Function);
 ON_STACK_DEBUG
 (
-static void      ErrPlaceCtor (ErrorType* err, const char* file, int line, const char* func);
+static void      ErrPlaceCtor (StackErrorType* err, const char* file, int line, const char* func);
 )
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -80,7 +80,7 @@ static void      ErrPlaceCtor (ErrorType* err, const char* file, int line, const
 
 #define RETURN_IF_ERR_OR_WARN(StackPtr, err) do                             \
 {                                                                            \
-    ErrorType ErrCopy = err;                                                  \
+    StackErrorType ErrCopy = err;                                                  \
     Verif(stack, &ErrCopy ON_STACK_DEBUG(, __FILE__, __LINE__, __func__));     \
     if (ErrCopy.IsFatalError == 1 || ErrCopy.IsWarning == 1)                    \
     {                                                                            \
@@ -90,9 +90,9 @@ static void      ErrPlaceCtor (ErrorType* err, const char* file, int line, const
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ErrorType StackCtor(Stack_t* stack, size_t StackDataSize)
+StackErrorType StackCtor(Stack_t* stack, size_t StackDataSize)
 {
-    ErrorType err = {};
+    StackErrorType err = {};
 
     stack->size = 0;
 
@@ -127,10 +127,10 @@ ErrorType StackCtor(Stack_t* stack, size_t StackDataSize)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ErrorType StackDtor(Stack_t* stack)
+StackErrorType StackDtor(Stack_t* stack)
 {
     assert(stack);
-    ErrorType err   = {};
+    StackErrorType err   = {};
     STACK_ASSERT(DtorFreeData(stack));
     stack->data     = nullptr;
     stack->capacity = 0;
@@ -140,9 +140,9 @@ ErrorType StackDtor(Stack_t* stack)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ErrorType StackPush(Stack_t*  stack, StackElem_t PushElem)
+StackErrorType StackPush(Stack_t*  stack, StackElem_t PushElem)
 {
-    ErrorType err = {};
+    StackErrorType err = {};
     RETURN_IF_ERR_OR_WARN(stack, err);
 
     if (stack->size + 1 > MaxCapacity)
@@ -197,9 +197,9 @@ ErrorType StackPush(Stack_t*  stack, StackElem_t PushElem)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ErrorType StackPop(Stack_t* stack, StackElem_t* PopElem)
+StackErrorType StackPop(Stack_t* stack, StackElem_t* PopElem)
 {
-    ErrorType err = {};
+    StackErrorType err = {};
     RETURN_IF_ERR_OR_WARN(stack, err);
 
     if (stack->size == 0)
@@ -239,9 +239,9 @@ ErrorType StackPop(Stack_t* stack, StackElem_t* PopElem)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ErrorType PrintStack(Stack_t* stack)
+StackErrorType PrintStack(Stack_t* stack)
 {
-    ErrorType err = {};
+    StackErrorType err = {};
     RETURN_IF_ERR_OR_WARN(stack, err);
 
     printf("\nStack:\n");
@@ -256,9 +256,9 @@ ErrorType PrintStack(Stack_t* stack)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ErrorType PrintLastStackElem(Stack_t* stack)
+StackErrorType PrintLastStackElem(Stack_t* stack)
 {
-    ErrorType err = {};
+    StackErrorType err = {};
     RETURN_IF_ERR_OR_WARN(stack, err);
     COLOR_PRINT(WHITE, "Last stack Elem = %d\n", stack->data[stack->size - 1]);
     return STACK_VERIF(stack, err);
@@ -337,11 +337,11 @@ static void SetRightDataCanary(Stack_t* stack)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static ErrorType MoveDataToLeftCanary(Stack_t* stack)
+static StackErrorType MoveDataToLeftCanary(Stack_t* stack)
 {
     assert(stack);
 
-    ErrorType err = {};
+    StackErrorType err = {};
 
     stack->data = (StackElem_t*)((char*)stack->data - sizeof(LeftDataCanary) * sizeof(char));
 
@@ -357,11 +357,11 @@ static ErrorType MoveDataToLeftCanary(Stack_t* stack)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static ErrorType MoveDataToFirstElem(Stack_t* stack)
+static StackErrorType MoveDataToFirstElem(Stack_t* stack)
 {
     assert(stack);
 
-    ErrorType err = {};
+    StackErrorType err = {};
 
     stack->data = (StackElem_t*)((char*)stack->data + sizeof(RightDataCanary) * sizeof(char));
 
@@ -420,10 +420,10 @@ static size_t GetNewCapacity(size_t capacity)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static ErrorType PushRealloc(Stack_t* stack)
+static StackErrorType PushRealloc(Stack_t* stack)
 {
     assert(stack);
-    ErrorType err = {};
+    StackErrorType err = {};
 
     ON_STACK_DATA_CANARY
     (
@@ -445,11 +445,11 @@ static ErrorType PushRealloc(Stack_t* stack)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static ErrorType PopRealloc(Stack_t* stack)
+static StackErrorType PopRealloc(Stack_t* stack)
 {
     assert(stack);
 
-    ErrorType err = {};
+    StackErrorType err = {};
 
     ON_STACK_DATA_CANARY
     (
@@ -471,9 +471,9 @@ static ErrorType PopRealloc(Stack_t* stack)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static ErrorType CtorCalloc(Stack_t* stack, size_t StackDataSize)
+static StackErrorType CtorCalloc(Stack_t* stack, size_t StackDataSize)
 {
-    ErrorType err = {};
+    StackErrorType err = {};
     assert(stack);
 
     stack->data = (StackElem_t*) calloc (stack->capacity * sizeof(StackElem_t) ON_STACK_DATA_CANARY(+ 2 * sizeof(DataCanary_t)), sizeof(char));
@@ -493,9 +493,9 @@ static ErrorType CtorCalloc(Stack_t* stack, size_t StackDataSize)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static ErrorType DtorFreeData(Stack_t* stack)
+static StackErrorType DtorFreeData(Stack_t* stack)
 {
-    ErrorType err = {};
+    StackErrorType err = {};
     RETURN_IF_ERR_OR_WARN(stack, err);
 
     ON_STACK_DATA_CANARY
@@ -511,7 +511,7 @@ static ErrorType DtorFreeData(Stack_t* stack)
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static ErrorType Verif(Stack_t* stack, ErrorType* Error ON_STACK_DEBUG(, const char* file, int line, const char* func))
+static StackErrorType Verif(Stack_t* stack, StackErrorType* Error ON_STACK_DEBUG(, const char* file, int line, const char* func))
 {
     assert(Error);
 
@@ -671,7 +671,7 @@ static ErrorType Verif(Stack_t* stack, ErrorType* Error ON_STACK_DEBUG(, const c
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static void PrintError(ErrorType Error)
+static void PrintError(StackErrorType Error)
 {
     if (Error.IsWarning == 0 && Error.IsFatalError == 0)
     {
@@ -915,7 +915,7 @@ void Dump(const Stack_t* stack, const char* file, int line, const char* func)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static void ErrPlaceCtor (ErrorType* err, const char* file, int line, const char* func)
+static void ErrPlaceCtor (StackErrorType* err, const char* file, int line, const char* func)
 {
     assert(err);
     assert(file);
@@ -938,7 +938,7 @@ static void PrintPlace(const char* file, int line, const char* Function)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void AssertPrint(ErrorType err, const char* file, int line, const char* func)
+void AssertPrint(StackErrorType err, const char* file, int line, const char* func)
 {
     if (err.IsFatalError || err.IsWarning) 
     {
