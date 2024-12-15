@@ -79,13 +79,13 @@ ON_STACK_CANARY(typedef uint64_t StackCanary_t;)
 
 struct Stack_t
 {
-    ON_STACK_CANARY(StackCanary_t LeftStackCanary;)
-    size_t Size;
-    size_t Capacity;
-    StackElem_t* Data;
-    ON_STACK_HASH(uint64_t StackHash;)
-    ON_STACK_DATA_HASH(uint64_t DataHash;)
-    ON_STACK_CANARY(StackCanary_t RightStackCanary;)
+    ON_STACK_CANARY(StackCanary_t leftStackCanary;)
+    size_t size;
+    size_t capacity;
+    StackElem_t* data;
+    ON_STACK_HASH(uint64_t stackHash;)
+    ON_STACK_DATA_HASH(uint64_t dataHash;)
+    ON_STACK_CANARY(StackCanary_t rightStackCanary;)
 };
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -148,31 +148,32 @@ struct ErrorType
     unsigned int IsWarning    : 1;
     Warnings     Warning;
     FatalErrors  FatalError;
-    const char*  File;
-    int          Line;
-    const char*  Func;
+    const char*  file;
+    int          line;
+    const char*  func;
 };
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ErrorType StackCtor               (Stack_t* Stack, size_t StackDataSize);
-ErrorType StackDtor               (Stack_t* Stack);
-ErrorType PrintStack              (Stack_t* Stack);
-ErrorType PrintLastStackElem      (Stack_t* Stack);
-ErrorType StackPush               (Stack_t* Stack, StackElem_t PushElem);
-ErrorType StackPop                (Stack_t* Stack, StackElem_t* PopElem);
+ErrorType StackCtor               (Stack_t* stack, size_t StackDataSize);
+ErrorType StackDtor               (Stack_t* stack);
+ErrorType PrintStack              (Stack_t* stack);
+ErrorType PrintLastStackElem      (Stack_t* stack);
+ErrorType StackPush               (Stack_t* stack, StackElem_t PushElem);
+ErrorType StackPop                (Stack_t* stack, StackElem_t* PopElem);
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ON_STACK_DEBUG
 (
-void Dump(const Stack_t* Stack, const char* File, int Line, const char* Func);
-#define DUMP(Stack) Dump(Stack, __FILE__, __LINE__, __func__)
+void Dump(const Stack_t* stack, const char* file, int line, const char* func);
+
+#define DUMP(stack) Dump(stack, __FILE__, __LINE__, __func__)
 )
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void AssertPrint (ErrorType Err, const char* File, int Line, const char* Func);
+void AssertPrint (ErrorType Err, const char* file, int line, const char* func);
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -180,7 +181,7 @@ void AssertPrint (ErrorType Err, const char* File, int Line, const char* Func);
     #define STACK_ASSERT(Err) do                             \
     {                                                         \
         ErrorType ErrCopy = Err;                               \
-        if (ErrCopy.IsFatalError == 1)                          \
+        if (ErrCopy.IsFatalError || ErrCopy.IsWarning)          \
         {                                                        \
             AssertPrint(ErrCopy, __FILE__, __LINE__, __func__);   \
             COLOR_PRINT(CYAN, "abort() in 3, 2, 1...\n");          \

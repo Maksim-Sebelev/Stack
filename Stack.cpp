@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <malloc.h>
+#include <assert.h>
 #include "Stack.hpp"
 #include "Hash.hpp"
 #include "ColorPrint.hpp"
@@ -17,8 +18,8 @@ typedef uint64_t DataCanary_t;
 
 ON_STACK_DATA_CANARY
 (
-static const StackCanary_t LeftStackCanary  = 0xDEEADDEADDEAD;
-static const StackCanary_t RightStackCanary = 0xDEADDEDDEADED;
+static const StackCanary_t leftStackCanary  = 0xDEEADDEADDEAD;
+static const StackCanary_t rightStackCanary = 0xDEADDEDDEADED;
 )
 ON_STACK_DATA_CANARY
 (
@@ -34,53 +35,53 @@ ON_STACK_DATA_POISON
 static const StackElem_t Poison = 0xDEEEEEAD;
 )
 
-static size_t GetNewCapacity      (size_t Capacity); 
+static size_t GetNewCapacity      (size_t capacity); 
 static size_t GetNewCtorCapacity  (size_t StackDataSize);
-static size_t GetNewPushCapacity  (const Stack_t* Stack);
-static size_t GetNewPopCapacity   (const Stack_t* Stack);
+static size_t GetNewPushCapacity  (const Stack_t* stack);
+static size_t GetNewPopCapacity   (const Stack_t* stack);
 
-static ErrorType CtorCalloc   (Stack_t* Stack, ErrorType* Err, size_t StackDataSize);
-static ErrorType DtorFreeData (Stack_t* Stack, ErrorType* Err);
-static ErrorType PushRealloc  (Stack_t* Stack, ErrorType* Err);
-static ErrorType PopRealloc   (Stack_t* Stack, ErrorType* Err);
+static ErrorType CtorCalloc   (Stack_t* stack, size_t StackDataSize);
+static ErrorType DtorFreeData (Stack_t* stack);
+static ErrorType PushRealloc  (Stack_t* stack);
+static ErrorType PopRealloc   (Stack_t* stack);
 
 ON_STACK_DATA_CANARY
 (
-static DataCanary_t GetLeftDataCanary    (const Stack_t* Stack);
-static DataCanary_t GetRightDataCanary   (const Stack_t* Stack);
-static void         SetLeftDataCanary    (Stack_t* Stack);
-static void         SetRightDataCanary   (Stack_t* Stack);
-static ErrorType    MoveDataToLeftCanary (Stack_t* Stack, ErrorType* Err);
-static ErrorType    MoveDataToFirstElem  (Stack_t* Stack, ErrorType* Err);
+static DataCanary_t GetLeftDataCanary    (const Stack_t* stack);
+static DataCanary_t GetRightDataCanary   (const Stack_t* stack);
+static void         SetLeftDataCanary    (Stack_t* stack);
+static void         SetRightDataCanary   (Stack_t* stack);
+static ErrorType    MoveDataToLeftCanary (Stack_t* stack);
+static ErrorType    MoveDataToFirstElem  (Stack_t* stack);
 )
 
 ON_STACK_DATA_HASH
 (
-static uint64_t CalcDataHash(const Stack_t* Stack);
+static uint64_t CalcDataHash(const Stack_t* stack);
 )
 ON_STACK_HASH
 (
-static uint64_t CalcStackHash (Stack_t* Stack);
+static uint64_t CalcStackHash (Stack_t* stack);
 )
 
-static ErrorType Verif       (Stack_t* Stack, ErrorType* Error ON_STACK_DEBUG(, const char* File, int Line, const char* Func));
+static ErrorType Verif       (Stack_t* stack, ErrorType* Error ON_STACK_DEBUG(, const char* file, int line, const char* func));
 static void      PrintError  (ErrorType Error);
-static void      PrintPlace  (const char* File, int Line, const char* Function);
+static void      PrintPlace  (const char* file, int line, const char* Function);
 ON_STACK_DEBUG
 (
-static void      ErrPlaceCtor (ErrorType* Err, const char* File, int Line, const char* Func);
+static void      ErrPlaceCtor (ErrorType* err, const char* file, int line, const char* func);
 )
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#define STACK_VERIF(StackPtr, Err) Verif(StackPtr, &Err ON_STACK_DEBUG(, __FILE__, __LINE__, __func__))
+#define STACK_VERIF(StackPtr, err) Verif(StackPtr, &err ON_STACK_DEBUG(, __FILE__, __LINE__, __func__))
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#define RETURN_IF_ERR_OR_WARN(StackPtr, Err) do                             \
+#define RETURN_IF_ERR_OR_WARN(StackPtr, err) do                             \
 {                                                                            \
-    ErrorType ErrCopy = Err;                                                  \
-    Verif(Stack, &ErrCopy ON_STACK_DEBUG(, __FILE__, __LINE__, __func__));     \
+    ErrorType ErrCopy = err;                                                  \
+    Verif(stack, &ErrCopy ON_STACK_DEBUG(, __FILE__, __LINE__, __func__));     \
     if (ErrCopy.IsFatalError == 1 || ErrCopy.IsWarning == 1)                    \
     {                                                                            \
         return ErrCopy;                                                           \
@@ -89,187 +90,195 @@ static void      ErrPlaceCtor (ErrorType* Err, const char* File, int Line, const
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ErrorType StackCtor(Stack_t* Stack, size_t StackDataSize)
+ErrorType StackCtor(Stack_t* stack, size_t StackDataSize)
 {
-    ErrorType Err = {};
+    ErrorType err = {};
 
-    Stack->Size = 0;
+    stack->size = 0;
 
-    Stack->Capacity = GetNewCtorCapacity(StackDataSize);
-    CtorCalloc(Stack, &Err, StackDataSize);
+    stack->capacity = GetNewCtorCapacity(StackDataSize);
+    STACK_ASSERT(CtorCalloc(stack, StackDataSize));
+
     ON_STACK_DATA_CANARY
     (
-    Stack->LeftStackCanary  = LeftStackCanary;
-    Stack->RightStackCanary = RightStackCanary;
+    stack->leftStackCanary  = leftStackCanary;
+    stack->rightStackCanary = rightStackCanary;
     )
+
     ON_STACK_DATA_CANARY
     (
-    SetLeftDataCanary (Stack);
-    SetRightDataCanary(Stack);
+    SetLeftDataCanary (stack);
+    SetRightDataCanary(stack);
     )
-    ON_STACK_DATA_POISON
-    (
-    for (size_t Data_i = 0; Data_i < Stack->Capacity; Data_i++)
-    {
-        Stack->Data[Data_i] = Poison;
-    }
-    )
-
-    ON_STACK_DATA_HASH(Stack->DataHash  = CalcDataHash(Stack);)
-    ON_STACK_HASH(Stack->StackHash = CalcStackHash(Stack);)
-
-    return STACK_VERIF(Stack, Err);
-}
-
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-ErrorType StackDtor(Stack_t* Stack)
-{
-    ErrorType Err   = {};
-    DtorFreeData(Stack, &Err);
-    Stack->Data     = NULL;
-    Stack->Capacity = 0;
-    Stack->Size     = 0;
-    return Err;
-}
-
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-ErrorType StackPush(Stack_t*  Stack, StackElem_t PushElem)
-{
-    ErrorType Err = {};
-    RETURN_IF_ERR_OR_WARN(Stack, Err);
-
-    if (Stack->Size + 1 > MaxCapacity)
-    {
-        Err.Warning.PushInFullStack = 1;
-        Err.IsWarning = 1;
-        return STACK_VERIF(Stack, Err);
-    }
-
-    Stack->Size++;
-
-    if (Stack->Size <= Stack->Capacity)
-    {
-        Stack->Data[Stack->Size - 1] = PushElem;
-    
-        ON_STACK_DATA_HASH(Stack->DataHash  = CalcDataHash(Stack);)
-        ON_STACK_HASH(Stack->StackHash = CalcStackHash(Stack);)
-
-        return STACK_VERIF(Stack, Err);
-    }
-
-    Stack->Capacity = GetNewPushCapacity(Stack);
-    PushRealloc(Stack, &Err);
-
-    if (Err.IsFatalError == 1)
-    {
-        return STACK_VERIF(Stack, Err);
-    }
-
-    Stack->Data[Stack->Size - 1] = PushElem;
-
-    ON_STACK_DATA_CANARY(SetRightDataCanary(Stack);)
 
     ON_STACK_DATA_POISON
     (
-    for (size_t Data_i = Stack->Size; Data_i < Stack->Capacity; Data_i++)
+    for (size_t data_i = 0; data_i < stack->capacity; data_i++)
     {
-        Stack->Data[Data_i] = Poison;
+        stack->data[data_i] = Poison;
     }
     )
 
-    ON_STACK_DATA_HASH(Stack->DataHash  = CalcDataHash(Stack);)
-    ON_STACK_HASH(Stack->StackHash = CalcStackHash(Stack);)
+    ON_STACK_DATA_HASH(stack->dataHash  = CalcDataHash(stack);)
+    ON_STACK_HASH(stack->stackHash = CalcStackHash(stack);)
+
+    return STACK_VERIF(stack, err);
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ErrorType StackDtor(Stack_t* stack)
+{
+    assert(stack);
+    ErrorType err   = {};
+    STACK_ASSERT(DtorFreeData(stack));
+    stack->data     = nullptr;
+    stack->capacity = 0;
+    stack->size     = 0;
+    return err;
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ErrorType StackPush(Stack_t*  stack, StackElem_t PushElem)
+{
+    ErrorType err = {};
+    RETURN_IF_ERR_OR_WARN(stack, err);
+
+    if (stack->size + 1 > MaxCapacity)
+    {
+        err.Warning.PushInFullStack = 1;
+        err.IsWarning = 1;
+        return STACK_VERIF(stack, err);
+    }
+
+    stack->size++;
+
+    if (stack->size <= stack->capacity)
+    {
+        stack->data[stack->size - 1] = PushElem;
     
-    if (Stack->Capacity == MaxCapacity)
-    {
-        Err.Warning.TooBigCapacity = 1;
-        Err.IsWarning = 1;
+        ON_STACK_DATA_HASH(stack->dataHash  = CalcDataHash(stack);)
+        ON_STACK_HASH(stack->stackHash = CalcStackHash(stack);)
+
+        return STACK_VERIF(stack, err);
     }
-    return STACK_VERIF(Stack, Err);
+
+    stack->capacity = GetNewPushCapacity(stack);
+    STACK_ASSERT(PushRealloc(stack));
+
+    if (err.IsFatalError == 1)
+    {
+        return STACK_VERIF(stack, err);
+    }
+
+    stack->data[stack->size - 1] = PushElem;
+
+    ON_STACK_DATA_CANARY(SetRightDataCanary(stack);)
+
+    ON_STACK_DATA_POISON
+    (
+    for (size_t data_i = stack->size; data_i < stack->capacity; data_i++)
+    {
+        stack->data[data_i] = Poison;
+    }
+    )
+
+    ON_STACK_DATA_HASH(stack->dataHash  = CalcDataHash(stack);)
+    ON_STACK_HASH(stack->stackHash = CalcStackHash(stack);)
+    
+    if (stack->capacity == MaxCapacity)
+    {
+        err.Warning.TooBigCapacity = 1;
+        err.IsWarning = 1;
+    }
+    return STACK_VERIF(stack, err);
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ErrorType StackPop(Stack_t* Stack, StackElem_t* PopElem)
+ErrorType StackPop(Stack_t* stack, StackElem_t* PopElem)
 {
-    ErrorType Err = {};
-    RETURN_IF_ERR_OR_WARN(Stack, Err);
+    ErrorType err = {};
+    RETURN_IF_ERR_OR_WARN(stack, err);
 
-    if (Stack->Size == 0)
+    if (stack->size == 0)
     {
-        Err.Warning.PopInEmptyStack = 1;
-        Err.IsWarning = 1;
-        return STACK_VERIF(Stack, Err);
+        err.Warning.PopInEmptyStack = 1;
+        err.IsWarning = 1;
+        return STACK_VERIF(stack, err);
     }
 
-    Stack->Size--;
+    stack->size--;
 
-    *PopElem = Stack->Data[Stack->Size];
+    *PopElem = stack->data[stack->size];
 
-    ON_STACK_DATA_POISON(Stack->Data[Stack->Size] = Poison;)
-    ON_STACK_DATA_HASH(Stack->DataHash  = CalcDataHash(Stack);)
-    ON_STACK_HASH(Stack->StackHash = CalcStackHash(Stack);)
+    ON_STACK_DATA_POISON(stack->data[stack->size] = Poison;)
+    ON_STACK_DATA_HASH(stack->dataHash  = CalcDataHash(stack);)
+    ON_STACK_HASH(stack->stackHash = CalcStackHash(stack);)
 
-    if (Stack->Size * CapPopReallocCoef > Stack->Capacity)
+    if (stack->size * CapPopReallocCoef > stack->capacity)
     {
-        return STACK_VERIF(Stack, Err);
+        return STACK_VERIF(stack, err);
     }
 
-    Stack->Capacity = GetNewPopCapacity(Stack);
-    PopRealloc(Stack, &Err);
+    stack->capacity = GetNewPopCapacity(stack);
+    STACK_ASSERT(PopRealloc(stack));
 
-    if (Err.IsFatalError == 1)
+    if (err.IsFatalError == 1)
     {
-        return STACK_VERIF(Stack, Err);
+        return STACK_VERIF(stack, err);
     }
 
-    ON_STACK_DATA_CANARY(SetRightDataCanary(Stack);)
-    ON_STACK_DATA_HASH(Stack->DataHash  = CalcDataHash(Stack);)
-    ON_STACK_HASH(Stack->StackHash = CalcStackHash(Stack);)
+    ON_STACK_DATA_CANARY(SetRightDataCanary(stack);)
+    ON_STACK_DATA_HASH(stack->dataHash  = CalcDataHash(stack);)
+    ON_STACK_HASH(stack->stackHash = CalcStackHash(stack);)
 
-    return STACK_VERIF(Stack, Err);
+    return STACK_VERIF(stack, err);
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ErrorType PrintStack(Stack_t* Stack)
+ErrorType PrintStack(Stack_t* stack)
 {
-    ErrorType Err = {};
-    RETURN_IF_ERR_OR_WARN(Stack, Err);
+    ErrorType err = {};
+    RETURN_IF_ERR_OR_WARN(stack, err);
 
     printf("\nStack:\n");
-    for (size_t Stack_i = 0; Stack_i < Stack->Size; Stack_i++)
+    for (size_t Stack_i = 0; Stack_i < stack->size; Stack_i++)
     {
-        printf("%d ", Stack->Data[Stack_i]);
+        printf("%d ", stack->data[Stack_i]);
     }
     printf("\nStack end\n\n");
 
-    return STACK_VERIF(Stack, Err);
+    return STACK_VERIF(stack, err);
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ErrorType PrintLastStackElem(Stack_t* Stack)
+ErrorType PrintLastStackElem(Stack_t* stack)
 {
-    ErrorType Err = {};
-    RETURN_IF_ERR_OR_WARN(Stack, Err);
-    COLOR_PRINT(WHITE, "Last Stack Elem = %d\n", Stack->Data[Stack->Size - 1]);
-    return STACK_VERIF(Stack, Err);
+    ErrorType err = {};
+    RETURN_IF_ERR_OR_WARN(stack, err);
+    COLOR_PRINT(WHITE, "Last stack Elem = %d\n", stack->data[stack->size - 1]);
+    return STACK_VERIF(stack, err);
 }
 
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ON_STACK_HASH
 (
-static uint64_t CalcStackHash(Stack_t* Stack)
+static uint64_t CalcStackHash(Stack_t* stack)
 {
-    const uint64_t StackHashCopy = Stack->StackHash;
-    Stack->StackHash             = DefaultStackHash;
-    uint64_t NewStackHash        = Hash(Stack, 1, sizeof(Stack_t));
-    Stack->StackHash             = StackHashCopy;
+    assert(stack);
+
+    const uint64_t StackHashCopy = stack->stackHash;
+    stack->stackHash             = DefaultStackHash;
+    uint64_t NewStackHash        = Hash(stack, 1, sizeof(Stack_t));
+    stack->stackHash             = StackHashCopy;
     return NewStackHash;
 }
 )
@@ -278,9 +287,11 @@ static uint64_t CalcStackHash(Stack_t* Stack)
 
 ON_STACK_DATA_HASH
 (
-static uint64_t CalcDataHash(const Stack_t* Stack)
+static uint64_t CalcDataHash(const Stack_t* stack)
 {
-    return Hash(Stack->Data, Stack->Capacity, sizeof(StackElem_t));
+    assert(stack);
+
+    return Hash(stack->data, stack->capacity, sizeof(StackElem_t));
 }
 )
 
@@ -288,60 +299,80 @@ static uint64_t CalcDataHash(const Stack_t* Stack)
 
 ON_STACK_DATA_CANARY
 (
-static DataCanary_t GetLeftDataCanary(const  Stack_t* Stack)
+static DataCanary_t GetLeftDataCanary(const  Stack_t* stack)
 {
-    return *(DataCanary_t*)((char*)Stack->Data - 1 * sizeof(DataCanary_t));
+    assert(stack);
+
+    return *(DataCanary_t*)((char*)stack->data - 1 * sizeof(DataCanary_t));
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static DataCanary_t GetRightDataCanary(const Stack_t* Stack)
+static DataCanary_t GetRightDataCanary(const Stack_t* stack)
 {
-    return *(DataCanary_t*)((char*)Stack->Data + Stack->Capacity * sizeof(StackElem_t));
+    assert(stack);
+
+    return *(DataCanary_t*)((char*)stack->data + stack->capacity * sizeof(StackElem_t));
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static void SetLeftDataCanary(Stack_t* Stack)
+static void SetLeftDataCanary(Stack_t* stack)
 {
-    *(DataCanary_t*)((char*)Stack->Data - 1 * sizeof(DataCanary_t)) = LeftDataCanary;
+    assert(stack);
+
+    *(DataCanary_t*)((char*)stack->data - 1 * sizeof(DataCanary_t)) = LeftDataCanary;
     return;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static void SetRightDataCanary(Stack_t* Stack)
+static void SetRightDataCanary(Stack_t* stack)
 {
-    *(DataCanary_t*)((char*)Stack->Data + Stack->Capacity * sizeof(StackElem_t)) = RightDataCanary;
+    assert(stack);
+
+    *(DataCanary_t*)((char*)stack->data + stack->capacity * sizeof(StackElem_t)) = RightDataCanary;
     return;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static ErrorType MoveDataToLeftCanary(Stack_t* Stack, ErrorType* Err)
+static ErrorType MoveDataToLeftCanary(Stack_t* stack)
 {
-    Stack->Data = (StackElem_t*)((char*)Stack->Data - 8 * sizeof(char));
+    assert(stack);
 
-    if (Stack->Data == NULL)
+    ErrorType err = {};
+
+    stack->data = (StackElem_t*)((char*)stack->data - sizeof(LeftDataCanary) * sizeof(char));
+
+    if (stack->data == nullptr)
     {
-        Err->FatalError.DataNull = 1;
-        Err->IsFatalError = 1;
+        err.FatalError.DataNull = 1;
+        err.IsFatalError = 1;
+        return STACK_VERIF(stack, err);
     }
-    return *Err;
+
+    return err;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static ErrorType MoveDataToFirstElem(Stack_t* Stack, ErrorType* Err)
+static ErrorType MoveDataToFirstElem(Stack_t* stack)
 {
-    Stack->Data = (StackElem_t*)((char*)Stack->Data + 8 * sizeof(char));
+    assert(stack);
 
-    if (Stack->Data == NULL)
+    ErrorType err = {};
+
+    stack->data = (StackElem_t*)((char*)stack->data + sizeof(RightDataCanary) * sizeof(char));
+
+    if (stack->data == nullptr)
     {
-        Err->FatalError.DataNull = 1;
-        Err->IsFatalError = 1;
+        err.FatalError.DataNull = 1;
+        err.IsFatalError = 1;
+        return STACK_VERIF(stack, err);
     }
-    return *Err;
+
+    return err;
 }
 )
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -354,131 +385,153 @@ static size_t GetNewCtorCapacity(const size_t StackDataSize)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static size_t GetNewPushCapacity(const Stack_t* Stack)
+static size_t GetNewPushCapacity(const Stack_t* stack)
 {
-    size_t NewCapacity = (Stack->Capacity * CapPushReallocCoef);
+    assert(stack);
+
+    size_t NewCapacity = (stack->capacity * CapPushReallocCoef);
     size_t Temp = NewCapacity < MaxCapacity ? NewCapacity : MaxCapacity;
     return GetNewCapacity(Temp);
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static size_t GetNewPopCapacity(const Stack_t* Stack)
+static size_t GetNewPopCapacity(const Stack_t* stack)
 {
-    size_t NewCapacity = (Stack->Capacity / CapPopReallocCoef);
+    assert(stack);
+
+    size_t NewCapacity = (stack->capacity / CapPopReallocCoef);
     size_t Temp = (NewCapacity > MinCapacity) ? NewCapacity : MinCapacity;
     return GetNewCapacity(Temp);
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static size_t GetNewCapacity(size_t Capacity)
+static size_t GetNewCapacity(size_t capacity)
 {
     ON_STACK_DATA_CANARY
     (
     size_t DataCanarySize = sizeof(DataCanary_t);
-    size_t Temp = (Capacity % DataCanarySize == 0) ? 0 : DataCanarySize - Capacity % DataCanarySize;
-    Capacity += Temp;
+    size_t Temp = (capacity % DataCanarySize == 0) ? 0 : DataCanarySize - capacity % DataCanarySize;
+    capacity += Temp;
     )
-    return Capacity;
+    return capacity;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static ErrorType PushRealloc(Stack_t* Stack, ErrorType* Err)
+static ErrorType PushRealloc(Stack_t* stack)
 {
+    assert(stack);
+    ErrorType err = {};
+
     ON_STACK_DATA_CANARY
     (
-    MoveDataToLeftCanary(Stack, Err);
+    STACK_ASSERT(MoveDataToLeftCanary(stack));
     )
-    Stack->Data = (StackElem_t*) realloc(Stack->Data, Stack->Capacity * sizeof(StackElem_t) ON_STACK_DATA_CANARY(+ 2 * sizeof(DataCanary_t)));
-    if (Stack->Data == NULL)
+    stack->data = (StackElem_t*) realloc(stack->data, stack->capacity * sizeof(StackElem_t) ON_STACK_DATA_CANARY(+ 2 * sizeof(DataCanary_t)));
+    if (stack->data == nullptr)
     {
-        Err->FatalError.ReallocPushNull = 1;
-        Err->IsFatalError = 1;
-        return *Err;
+        err.FatalError.ReallocPushNull = 1;
+        err.IsFatalError = 1;
+        return STACK_VERIF(stack, err);
     }
     ON_STACK_DATA_CANARY
     (
-    MoveDataToFirstElem(Stack, Err);
+    STACK_ASSERT(MoveDataToFirstElem(stack));
     )
-    return *Err; 
+    return err; 
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static ErrorType PopRealloc(Stack_t* Stack, ErrorType* Err)
+static ErrorType PopRealloc(Stack_t* stack)
 {
+    assert(stack);
+
+    ErrorType err = {};
+
     ON_STACK_DATA_CANARY
     (
-    MoveDataToLeftCanary(Stack, Err);
+    STACK_ASSERT(MoveDataToLeftCanary(stack));
     )
-    Stack->Data = (StackElem_t*) realloc(Stack->Data, Stack->Capacity * sizeof(StackElem_t) ON_STACK_DATA_CANARY(+ 2 * sizeof(DataCanary_t)));
-    if (Stack->Data == NULL)
+    stack->data = (StackElem_t*) realloc(stack->data, stack->capacity * sizeof(StackElem_t) ON_STACK_DATA_CANARY(+ 2 * sizeof(DataCanary_t)));
+    if (stack->data == nullptr)
     {
-        Err->FatalError.ReallocPopNull = 1;
-        Err->IsFatalError = 1;
-        return *Err;
+        err.FatalError.ReallocPopNull = 1;
+        err.IsFatalError = 1;
+        return STACK_VERIF(stack, err);
     }
     ON_STACK_DATA_CANARY
     (
-    MoveDataToFirstElem(Stack, Err);
+    STACK_ASSERT(MoveDataToFirstElem(stack));
     )
-    return *Err;
+    return err;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static ErrorType CtorCalloc(Stack_t* Stack, ErrorType* Err, size_t StackDataSize)
+static ErrorType CtorCalloc(Stack_t* stack, size_t StackDataSize)
 {
-    Stack->Data = (StackElem_t*) calloc (Stack->Capacity * sizeof(StackElem_t) ON_STACK_DATA_CANARY(+ 2 * sizeof(DataCanary_t)), sizeof(char));
-    if (Stack->Data == NULL)
+    ErrorType err = {};
+    assert(stack);
+
+    stack->data = (StackElem_t*) calloc (stack->capacity * sizeof(StackElem_t) ON_STACK_DATA_CANARY(+ 2 * sizeof(DataCanary_t)), sizeof(char));
+
+    if (stack->data == nullptr)
     {
-        Err->FatalError.DataNull = 1;
-        Err->IsFatalError = 1;
-        return *Err;
+        err.FatalError.DataNull = 1;
+        err.IsFatalError = 1;
+        return STACK_VERIF(stack, err);
     }
     ON_STACK_DATA_CANARY
     (
-    MoveDataToFirstElem(Stack, Err);
+    STACK_ASSERT(MoveDataToFirstElem(stack));
     )
-    return *Err;
+    return err;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static ErrorType DtorFreeData(Stack_t* Stack, ErrorType* Err)
+static ErrorType DtorFreeData(Stack_t* stack)
 {
+    ErrorType err = {};
+    RETURN_IF_ERR_OR_WARN(stack, err);
+
     ON_STACK_DATA_CANARY
     (
-    MoveDataToLeftCanary(Stack, Err);
+    STACK_ASSERT(MoveDataToLeftCanary(stack));
     )
-    free(Stack->Data);
-    return *Err;
+    free(stack->data);
+    stack->data = nullptr;
+
+    return err;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_STACK_DEBUG(, const char* File, int Line, const char* Func))
+static ErrorType Verif(Stack_t* stack, ErrorType* Error ON_STACK_DEBUG(, const char* file, int line, const char* func))
 {
+    assert(Error);
+
     ON_STACK_DEBUG
     (
-    ErrPlaceCtor(Error, File, Line, Func);
+    ErrPlaceCtor(Error, file, line, func);
     )
- 
-    if (Stack == NULL)
+
+    if (stack == nullptr)
     {
         Error->FatalError.StackNull = 1;
         Error->IsFatalError = 1;
         return *Error;
-    }  
+    }
     else
     {
         Error->FatalError.StackNull = 0;   
     }
 
-    if (Stack->Data == NULL)
+    if (stack->data == nullptr)
     {
         Error->FatalError.DataNull = 1;
         Error->IsFatalError = 1;
@@ -491,7 +544,7 @@ static ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_STACK_DEBUG(, const c
 
     ON_STACK_DATA_CANARY
     (
-    if (Stack->LeftStackCanary != LeftStackCanary)
+    if (stack->leftStackCanary != leftStackCanary)
     {
         Error->FatalError.LeftStackCanaryChanged = 1;
         Error->IsFatalError = 1;
@@ -501,7 +554,7 @@ static ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_STACK_DEBUG(, const c
         Error->FatalError.LeftStackCanaryChanged = 0;
     }
 
-    if (Stack->RightStackCanary != RightStackCanary)
+    if (stack->rightStackCanary != rightStackCanary)
     {
         Error->FatalError.RightStackCanaryChanged = 1;
         Error->IsFatalError = 1;
@@ -514,7 +567,7 @@ static ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_STACK_DEBUG(, const c
 
     ON_STACK_DATA_CANARY
     (
-    if (GetLeftDataCanary(Stack) != LeftDataCanary)
+    if (GetLeftDataCanary(stack) != LeftDataCanary)
     {
         Error->FatalError.LeftDataCanaryChanged = 1;
         Error->IsFatalError = 1;
@@ -524,7 +577,7 @@ static ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_STACK_DEBUG(, const c
         Error->FatalError.LeftDataCanaryChanged = 0;
     }
 
-    if (GetRightDataCanary(Stack) != RightDataCanary)
+    if (GetRightDataCanary(stack) != RightDataCanary)
     {
         Error->FatalError.RightDataCanaryChanged = 1;
         Error->IsFatalError = 1;
@@ -537,7 +590,7 @@ static ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_STACK_DEBUG(, const c
 
     ON_STACK_DEBUG
     (
-    if (Stack->Size > Stack->Capacity)
+    if (stack->size > stack->capacity)
     {
         Error->FatalError.SizeBiggerCapacity = 1;
         Error->IsFatalError = 1;
@@ -547,7 +600,7 @@ static ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_STACK_DEBUG(, const c
         Error->FatalError.SizeBiggerCapacity = 0;   
     }
 
-    if (Stack->Capacity < MinCapacity)
+    if (stack->capacity < MinCapacity)
     {
         Error->FatalError.CapacitySmallerMin = 1;
         Error->IsFatalError = 1;
@@ -557,7 +610,7 @@ static ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_STACK_DEBUG(, const c
         Error->FatalError.CapacitySmallerMin = 0;
     }
 
-    if (Stack->Capacity > MaxCapacity)
+    if (stack->capacity > MaxCapacity)
     {
         Error->FatalError.CapacityBiggerMax = 1;
         Error->IsFatalError = 1;
@@ -571,9 +624,9 @@ static ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_STACK_DEBUG(, const c
     ON_STACK_DATA_POISON
     (
     bool WasNotPosion = false;
-    for (size_t Data_i = Stack->Size; Data_i < Stack->Capacity; Data_i++)
+    for (size_t data_i = stack->size; data_i < stack->capacity; data_i++)
     {
-        if (Stack->Data[Data_i] != Poison)
+        if (stack->data[data_i] != Poison)
         {
             Error->FatalError.DataElemBiggerSizeNotPoison = 1;
             Error->IsFatalError = 1;
@@ -587,10 +640,10 @@ static ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_STACK_DEBUG(, const c
         Error->FatalError.DataElemBiggerSizeNotPoison = 0;
     }
     )
-    
+
     ON_STACK_DATA_HASH
     (
-    if (CalcDataHash(Stack) != Stack->DataHash)
+    if (CalcDataHash(stack) != stack->dataHash)
     {
         Error->FatalError.DataHashChanged = 1;
         Error->IsFatalError = 1;
@@ -603,7 +656,7 @@ static ErrorType Verif(Stack_t* Stack, ErrorType* Error ON_STACK_DEBUG(, const c
 
     ON_STACK_HASH
     (
-    if (CalcStackHash(Stack) != Stack->StackHash)
+    if (CalcStackHash(stack) != stack->stackHash)
     {
         Error->FatalError.StackHashChanged = 1;
         Error->IsFatalError = 1;
@@ -629,20 +682,20 @@ static void PrintError(ErrorType Error)
     {
         if (Error.Warning.PopInEmptyStack == 1)
         {
-            COLOR_PRINT(YELLOW, "Warning: make pop, but Stack is empty.\n");
+            COLOR_PRINT(YELLOW, "Warning: make pop, but stack is empty.\n");
             COLOR_PRINT(YELLOW, "StackPop will not change PopElem.\n");
         }
 
         if (Error.Warning.TooBigCapacity == 1)
         {
-            COLOR_PRINT(YELLOW, "Warning: to big Data size.\n");
-            COLOR_PRINT(YELLOW, "Capacity have a max allowed value.\n");
+            COLOR_PRINT(YELLOW, "Warning: to big data size.\n");
+            COLOR_PRINT(YELLOW, "capacity have a max allowed value.\n");
         }
 
         if (Error.Warning.PushInFullStack == 1)
         {
-            COLOR_PRINT(YELLOW, "Warning: made StackPush in full Stack.\n");
-            COLOR_PRINT(YELLOW, "Stack won't change.\n");
+            COLOR_PRINT(YELLOW, "Warning: made StackPush in full stack.\n");
+            COLOR_PRINT(YELLOW, "stack won't change.\n");
         }
     }
 
@@ -650,13 +703,13 @@ static void PrintError(ErrorType Error)
     {
         if (Error.FatalError.StackNull == 1)
         {
-            COLOR_PRINT(RED, "Error: Right Data Canary was changed.\n");
-            OFF_STACK_DEBUG(COLOR_PRINT(RED, "!Stack Data can be incorrect!\n"));
+            COLOR_PRINT(RED, "Error: Right data Canary was changed.\n");
+            OFF_STACK_DEBUG(COLOR_PRINT(RED, "!stack data can be incorrect!\n"));
         }
 
         if (Error.FatalError.DataNull == 1)
         {
-            COLOR_PRINT(RED, "Error: Data is NULL.\n");
+            COLOR_PRINT(RED, "Error: data is nullptr.\n");
         }
 
         if (Error.FatalError.CallocCtorNull == 1)
@@ -678,28 +731,28 @@ static void PrintError(ErrorType Error)
         (
         if (Error.FatalError.LeftStackCanaryChanged == 1)
         {
-            COLOR_PRINT(RED, "Error: Left Stack Canary was changed.\n");
-            OFF_STACK_DEBUG(COLOR_PRINT(RED, "!Stack Data can be incorrect!\n"));
+            COLOR_PRINT(RED, "Error: Left stack Canary was changed.\n");
+            OFF_STACK_DEBUG(COLOR_PRINT(RED, "!stack data can be incorrect!\n"));
         }
         
         if (Error.FatalError.RightStackCanaryChanged == 1)
         {
-            COLOR_PRINT(RED, "Error: Right Stack Canary was changed.\n");
-            OFF_STACK_DEBUG(COLOR_PRINT(RED, "!Stack Data can be incorrect!\n"));
+            COLOR_PRINT(RED, "Error: Right stack Canary was changed.\n");
+            OFF_STACK_DEBUG(COLOR_PRINT(RED, "!stack data can be incorrect!\n"));
         }
         )
         ON_STACK_DATA_CANARY
         (
         if (Error.FatalError.LeftDataCanaryChanged == 1)
         {
-            COLOR_PRINT(RED, "Error: Left Data Canary was changed.\n");
-            OFF_STACK_DEBUG(COLOR_PRINT(RED, "!Stack Data can be incorrect!\n"));
+            COLOR_PRINT(RED, "Error: Left data Canary was changed.\n");
+            OFF_STACK_DEBUG(COLOR_PRINT(RED, "!stack data can be incorrect!\n"));
         }
 
         if (Error.FatalError.RightDataCanaryChanged == 1)
         {
-            COLOR_PRINT(RED, "Error: Right Data Canary was changed.\n");
-            OFF_STACK_DEBUG(COLOR_PRINT(RED, "!Stack Data can be incorrect!\n"));
+            COLOR_PRINT(RED, "Error: Right data Canary was changed.\n");
+            OFF_STACK_DEBUG(COLOR_PRINT(RED, "!stack data can be incorrect!\n"));
         }
         )
 
@@ -707,7 +760,7 @@ static void PrintError(ErrorType Error)
         (
         if (Error.FatalError.DataElemBiggerSizeNotPoison == 1)
         {
-            COLOR_PRINT(RED, "Error: After Size in Data is not Poison elem.\n");
+            COLOR_PRINT(RED, "Error: After size in data is not Poison elem.\n");
         }
         )
 
@@ -715,32 +768,32 @@ static void PrintError(ErrorType Error)
         (
         if (Error.FatalError.SizeBiggerCapacity == 1)
         {
-            COLOR_PRINT(RED, "Error: Size > Capacity.\n");
+            COLOR_PRINT(RED, "Error: size > capacity.\n");
         }
         
         if (Error.FatalError.CapacityBiggerMax == 1)
         {
-            COLOR_PRINT(RED, "Error: Capacity > MaxCapacity.\n");
+            COLOR_PRINT(RED, "Error: capacity > MaxCapacity.\n");
         }
 
         if (Error.FatalError.CapacitySmallerMin == 1)
         {
-            COLOR_PRINT(RED, "Error: Capacity < MinCapacity.\n");
+            COLOR_PRINT(RED, "Error: capacity < MinCapacity.\n");
         }
 
         if (Error.FatalError.CtorStackFileNull == 1)
         {
-            COLOR_PRINT(RED, "Error: Stack ctor init file is NULL.\n");
+            COLOR_PRINT(RED, "Error: stack ctor init file is nullptr.\n");
         }
 
         if (Error.FatalError.CtorStackFuncNull == 1)
         {
-            COLOR_PRINT(RED, "Error: Stack ctor init func is NULL.\n");
+            COLOR_PRINT(RED, "Error: stack ctor init func is nullptr.\n");
         }
         
         if (Error.FatalError.CtorStackLineNegative == 1)
         {
-            COLOR_PRINT(RED, "Error: Stack ctor init line is negative or 0.\n");
+            COLOR_PRINT(RED, "Error: stack ctor init line is negative or 0.\n");
         }
         )
 
@@ -748,7 +801,7 @@ static void PrintError(ErrorType Error)
         (
         if (Error.FatalError.DataHashChanged == 1)
         {
-            COLOR_PRINT(RED, "Error: Data Hash is incorrect.\n");
+            COLOR_PRINT(RED, "Error: data Hash is incorrect.\n");
         }
         )
 
@@ -756,7 +809,7 @@ static void PrintError(ErrorType Error)
         (
         if (Error.FatalError.StackHashChanged == 1)
         {
-            COLOR_PRINT(RED, "Error: Stack Hash is incorrect.\n");
+            COLOR_PRINT(RED, "Error: stack Hash is incorrect.\n");
         }
         )
     }
@@ -767,7 +820,7 @@ static void PrintError(ErrorType Error)
 
 ON_STACK_DEBUG
 (
-void Dump(const Stack_t* Stack, const char* File, int Line, const char* Func)
+void Dump(const Stack_t* stack, const char* file, int line, const char* func)
 {   
     COLOR_PRINT(GREEN, "\nDump BEGIN\n\n");
 
@@ -776,11 +829,11 @@ void Dump(const Stack_t* Stack, const char* File, int Line, const char* Func)
     #ifndef DANG_DUMP
         ON_STACK_HASH
         (
-        if (Stack->StackHash != CalcStackHash(Stack))
+        if (stack->stackHash != CalcStackHash(stack))
         {
             COLOR_PRINT(RED, "Incorrect hash.\n");
-            COLOR_PRINT(WHITE, "Correct hash    = %d\n", CalcStackHash(Stack));
-            COLOR_PRINT(WHITE, "Stack.StackHash = %d\n", Stack->StackHash);
+            COLOR_PRINT(WHITE, "Correct hash    = %d\n", CalcStackHash(stack));
+            COLOR_PRINT(WHITE, "stack.stackHash = %d\n", stack->stackHash);
             return;
         }
         )
@@ -792,67 +845,67 @@ void Dump(const Stack_t* Stack, const char* File, int Line, const char* Func)
     #undef DANG_DUMP
 
     COLOR_PRINT(VIOLET, "Where Dump made:\n");
-    PrintPlace(File, Line, Func);
+    PrintPlace(file, line, func);
 
-    COLOR_PRINT(VIOLET, "Stack data during StackCtor:\n");
+    COLOR_PRINT(VIOLET, "stack data during StackCtor:\n");
 
-    if (Stack == NULL)
+    if (stack == nullptr)
     {
-        COLOR_PRINT(RED, "Stack = NULL\n");
+        COLOR_PRINT(RED, "stack = nullptr\n");
         return;
     }
 
-    if (Stack->Data == NULL)
+    if (stack->data == nullptr)
     {
-        COLOR_PRINT(RED, "Stack.Data = NULL");
+        COLOR_PRINT(RED, "stack.data = nullptr");
         return;
     }
 
-    COLOR_PRINT(VIOLET, "&Stack = 0x%p\n", Stack);
-    COLOR_PRINT(VIOLET, "&Data  = 0x%p\n\n", Stack->Data);
+    COLOR_PRINT(VIOLET, "&stack = 0x%p\n", stack);
+    COLOR_PRINT(VIOLET, "&data  = 0x%p\n\n", stack->data);
 
     ON_STACK_DATA_CANARY
     (
-    COLOR_PRINT(YELLOW, "Left  Stack Canary = 0x%lx = %lu\n",   Stack->LeftStackCanary,    Stack->LeftStackCanary);
-    COLOR_PRINT(YELLOW, "Right Stack Canary = 0x%lx = %lu\n\n", Stack->RightStackCanary,   Stack->RightStackCanary);
+    COLOR_PRINT(YELLOW, "Left  stack Canary = 0x%lx = %lu\n",   stack->leftStackCanary,    stack->leftStackCanary);
+    COLOR_PRINT(YELLOW, "Right stack Canary = 0x%lx = %lu\n\n", stack->rightStackCanary,   stack->rightStackCanary);
     )
     ON_STACK_DATA_CANARY
     (
-    COLOR_PRINT(YELLOW, "Left  Data  Canary = 0x%lx = %lu\n",   GetLeftDataCanary(Stack),  GetLeftDataCanary(Stack));
-    COLOR_PRINT(YELLOW, "Right Data  Canary = 0x%lx = %lu\n\n", GetRightDataCanary(Stack), GetRightDataCanary(Stack));
+    COLOR_PRINT(YELLOW, "Left  data  Canary = 0x%lx = %lu\n",   GetLeftDataCanary(stack),  GetLeftDataCanary(stack));
+    COLOR_PRINT(YELLOW, "Right data  Canary = 0x%lx = %lu\n\n", GetRightDataCanary(stack), GetRightDataCanary(stack));
     )
 
-    ON_STACK_HASH (COLOR_PRINT(BLUE, "Stack Hash = %lu\n",   Stack->StackHash);)
-    ON_STACK_DATA_HASH (COLOR_PRINT(BLUE, "Data  Hash = %lu\n\n", Stack->DataHash);)
+    ON_STACK_HASH (COLOR_PRINT(BLUE, "stack Hash = %lu\n",   stack->stackHash);)
+    ON_STACK_DATA_HASH (COLOR_PRINT(BLUE, "data  Hash = %lu\n\n", stack->dataHash);)
 
-    COLOR_PRINT(CYAN, "Size = %lu\n", Stack->Size);
-    COLOR_PRINT(CYAN, "Capacity = %lu\n\n", Stack->Capacity);
+    COLOR_PRINT(CYAN, "size = %lu\n", stack->size);
+    COLOR_PRINT(CYAN, "capacity = %lu\n\n", stack->capacity);
 
 
     ON_STACK_DATA_POISON (COLOR_PRINT(GREEN, "Poison = 0x%x = %d\n\n", Poison, Poison);)
 
-    COLOR_PRINT(BLUE, "Data = \n{\n");
-    for (size_t Data_i = 0; Data_i < Stack->Size; Data_i++)
+    COLOR_PRINT(BLUE, "data = \n{\n");
+    for (size_t data_i = 0; data_i < stack->size; data_i++)
     {
-        COLOR_PRINT(BLUE, "*[%2lu] %d\n", Data_i, Stack->Data[Data_i]);
+        COLOR_PRINT(BLUE, "*[%2lu] %d\n", data_i, stack->data[data_i]);
     }
 
-    for (size_t Data_i = Stack->Size; Data_i < Stack->Capacity; Data_i++)
+    for (size_t data_i = stack->size; data_i < stack->capacity; data_i++)
     {
-        COLOR_PRINT(CYAN, " [%2lu] 0x%x\n", Data_i, Stack->Data[Data_i]);   
+        COLOR_PRINT(CYAN, " [%2lu] 0x%x\n", data_i, stack->data[data_i]);   
     }
     COLOR_PRINT(BLUE, "};\n\n");
 
 
-    COLOR_PRINT(VIOLET, "Data ptrs = \n{\n");
-    for (size_t Data_i = 0; Data_i < Stack->Size; Data_i++)
+    COLOR_PRINT(VIOLET, "data ptrs = \n{\n");
+    for (size_t data_i = 0; data_i < stack->size; data_i++)
     {
-        COLOR_PRINT(VIOLET, "*[%2lu] 0x%p\n", Data_i, &Stack->Data[Data_i]);
+        COLOR_PRINT(VIOLET, "*[%2lu] 0x%p\n", data_i, &stack->data[data_i]);
     }
 
-    for (size_t Data_i = Stack->Size; Data_i < Stack->Capacity; Data_i++)
+    for (size_t data_i = stack->size; data_i < stack->capacity; data_i++)
     {
-        COLOR_PRINT(CYAN, " [%2lu] 0x%p\n", Data_i, &Stack->Data[Data_i]);   
+        COLOR_PRINT(CYAN, " [%2lu] 0x%p\n", data_i, &stack->data[data_i]);   
     }
     COLOR_PRINT(VIOLET, "};\n");
 
@@ -862,35 +915,39 @@ void Dump(const Stack_t* Stack, const char* File, int Line, const char* Func)
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static void ErrPlaceCtor (ErrorType* Err, const char* File, int Line, const char* Func)
+static void ErrPlaceCtor (ErrorType* err, const char* file, int line, const char* func)
 {
-    Err->File = File;
-    Err->Line = Line;
-    Err->Func = Func;
+    assert(err);
+    assert(file);
+    assert(func);
+
+    err->file = file;
+    err->line = line;
+    err->func = func;
     return;
 }
 )
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-static void PrintPlace(const char* File, int Line, const char* Function)
+static void PrintPlace(const char* file, int line, const char* Function)
 {
-    COLOR_PRINT(WHITE, "File [%s]\nLine [%d]\nFunc [%s]\n", File, Line, Function);
+    COLOR_PRINT(WHITE, "file [%s]\nLine [%d]\nFunc [%s]\n", file, line, Function);
     return;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void AssertPrint(ErrorType Err, const char* File, int Line, const char* Func)
+void AssertPrint(ErrorType err, const char* file, int line, const char* func)
 {
-    if (Err.IsFatalError == 1 || Err.IsWarning == 1) 
+    if (err.IsFatalError || err.IsWarning) 
     {
         COLOR_PRINT(RED, "Assert made in:\n");
-        PrintPlace(File, Line, Func);
-        PrintError(Err);
+        PrintPlace(file, line, func);
+        PrintError(err);
         ON_STACK_DEBUG
         (
-        PrintPlace(Err.File, Err.Line, Err.Func);
+        PrintPlace(err.file, err.line, err.func);
         )
         printf("\n");
     }
